@@ -1,0 +1,39 @@
+name: secondbrain-selftest
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: skills/secondbrain-index-sync
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -I scripts/check_index.py --selftest
+      - run: python -I scripts/doc_manifest.py --selftest
+      - run: python -I scripts/build_topics.py --selftest
+      - if: runner.os != 'Windows'
+        run: |
+          HOME=$RUNNER_TEMP sh install.sh "$RUNNER_TEMP/vault"
+          test -L "$RUNNER_TEMP/.claude/skills/secondbrain-index-sync" && grep -q vault "$RUNNER_TEMP/.config/secondbrain-index-sync/vault"
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:USERPROFILE = $env:RUNNER_TEMP
+          ./install.ps1 "$env:RUNNER_TEMP\vault"
+          if (-not (Test-Path "$env:RUNNER_TEMP\.agents\skills\secondbrain-index-sync\SKILL.md")) { exit 1 }
+  skills-cli:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # checks that `npx skills add` installs the published repo
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          export HOME=$RUNNER_TEMP/h
+          mkdir -p $HOME && cd $HOME
+          npx -y skills add HOYUN-Y/agent-skills -g -y
+          find $HOME -path '*secondbrain-index-sync/SKILL.md' | grep .

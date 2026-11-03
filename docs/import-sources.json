@@ -1,0 +1,44 @@
+[
+  {
+    "repository": "HOYUN-Y/inspecting-vibe",
+    "commit": "186e240a3bdc9594aca22c95cdf9e3246f77a52a",
+    "source": "inspecting-vibe",
+    "destination": "skills/inspecting-vibe"
+  },
+  {
+    "repository": "HOYUN-Y/motion-web-skill",
+    "commit": "ad31d69b48167c2166a45668f15e8aea6d2c7d10",
+    "source": "motion-web-builder",
+    "destination": "skills/motion-web-builder"
+  },
+  {
+    "repository": "HOYUN-Y/herdr-setting-skill",
+    "commit": "41e82abad132abb2d51e689c205240e36b790301",
+    "source": "skills/herdr-workflow",
+    "destination": "skills/herdr-workflow"
+  },
+  {
+    "repository": "HOYUN-Y/changelog-skill",
+    "commit": "4e63d25dd1489aac6ab6d154a9cd8eeda9e98267",
+    "source": "skills/changelog-update",
+    "destination": "skills/changelog-update"
+  },
+  {
+    "repository": "HOYUN-Y/changelog-skill",
+    "commit": "4e63d25dd1489aac6ab6d154a9cd8eeda9e98267",
+    "source": "skills/changelog-verify",
+    "destination": "skills/changelog-verify"
+  },
+  {
+    "repository": "HOYUN-Y/social-data-skill",
+    "commit": "5c948bd8855916c05719fd1e7979fa53e618b049",
+    "source": ".",
+    "destination": "skills/ai-use-case-research"
+  },
+  {
+    "repository": "HOYUN-Y/second-brain-skill",
+    "commit": "851deaae9b9c7979a01a68951d3e705e6ac54759",
+    "source": ".",
+    "destination": "skills/secondbrain-index-sync"
+  }
+]

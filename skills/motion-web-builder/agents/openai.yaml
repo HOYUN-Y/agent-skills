@@ -1,0 +1,4 @@
+interface:
+  display_name: "모션 웹 페이지 제작"
+  short_description: "콘셉트와 참고 자료를 모션 명세로 구체화하고 웹 페이지를 구현·검증합니다."
+  default_prompt: "$motion-web-builder를 사용해 원하는 콘셉트에 맞는 모션 중심 웹 페이지를 설계하고 구현해 주세요."
