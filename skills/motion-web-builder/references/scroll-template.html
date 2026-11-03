@@ -1,0 +1,142 @@
+<!doctype html>
+<!--
+  내장 스크롤 엔진(scrollcraft) 시작 골격.
+
+  여기서 시작해 필요 없는 것은 지우고, 남길 것은 자기 마크업으로 다시 쓴다. 이 파일은
+  레이아웃이 아니라 출발점이다. 구조를 그대로 유지한 페이지는 같은 구조를 유지한 다른
+  페이지와 똑같이 보인다.
+
+  아래 act 순서(scrub > pin > flow > scrub > pan > pin)는 하나의 예시 배열이다. 사용자의
+  콘텐츠 흐름에 맞춰 재배열한다. 엔진 계약상 유지해야 할 것은 다음 세 가지다.
+    - scrub act는 페이지에서 가장 무거우므로 많아도 두 개까지
+    - 마지막 act의 cue는 한 값(유지)으로, 그 밖의 act는 두 값 창으로 닫기
+    - 닫는 act가 페이지의 마지막 요소. 뒤에 긴 꼬리를 두지 않기
+
+  engine/scrollcraft.js, scrollcraft.css를 이 파일과 같은 폴더에 복사한 뒤 사용한다.
+  자세한 속성 계약과 검증 절차는 scroll-engine.md 참조.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>브랜드 · 한 줄 약속</title>
+<meta name="description" content="검색 결과에 보일 한 문장.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230A0807'/></svg>">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  /* 브랜드 토큰. 이 여섯 색과 두 서체만 바꾸면 scrollcraft.css의 나머지는 여기서 파생된다. */
+  :root {
+    --sc-canvas:     #08090b;
+    --sc-surface:    #101217;
+    --sc-ink:        #f4f2ef;
+    --sc-ink-soft:   #9a9ba1;
+    --sc-accent:     #d8ff3e;
+    --sc-accent-ink: #08090b;
+    --sc-font-display: system-ui, sans-serif;
+    --sc-font-text:    system-ui, sans-serif;
+  }
+  /* 페이지 고유 클래스는 여기에 쓴다. .sc-stage, .sc-copy, [data-sc-*] 선택자는 동작 장치이므로
+     재스타일하지 않는다. */
+</style>
+</head>
+<body>
+
+<span data-sc-progress></span>
+<div class="sc-grain" aria-hidden="true"></div>
+
+<header class="site-bar"><!-- 로고 + CTA 라벨 하나. 페이지 전체에서 같은 라벨을 쓴다 --></header>
+
+<main id="top">
+
+  <!-- 1 · 인지: scrub.
+       포스터는 실제 프레임이 그려질 때까지 유지된다. src 대신 data-sc-src를 쓴다. -->
+  <section data-sc-act="scrub" data-sc-span="2.6" data-sc-dwell="0.34" data-sc-drift="#08090b">
+    <div data-sc-stage>
+      <img class="sc-stage__poster" src="assets/01-poster.webp" alt="">
+      <video data-sc-scrub data-sc-src="assets/01.mp4"
+             data-sc-src-mobile="assets/01-m.mp4" muted playsinline></video>
+      <div class="sc-scrim sc-scrim--lead" aria-hidden="true"></div>
+      <!-- 세 번째 값 0 = greet: 페이지가 열리는 순간 이미 화면에 있다 -->
+      <div class="sc-copy sc-copy--lead" data-sc-cue="0 0.78 0">
+        <h1 class="sc-display sc-display--xl" data-sc-kinetic="lines">아홉 단어 안의 약속.</h1>
+        <p class="sc-body">평이한 한 문장. 길어도 스무 단어.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · 긴장: pin. cue 창을 약 15% 겹쳐 빈 구간이 없게 한다.
+       첫 cue는 greet, 마지막 cue는 1에서 끝나는 두 값 창(중간 act이므로 유지하지 않음). -->
+  <section data-sc-act="pin" data-sc-span="3.4" data-sc-drift="#101217">
+    <div data-sc-stage class="argument">
+      <p data-sc-cue="0 0.32 0">독자가 알아보는 상황.</p>
+      <p data-sc-cue="0.26 0.60">그것이 실제로 치르게 하는 비용.</p>
+      <p data-sc-cue="0.54 0.88">왜 계속 반복되는지.</p>
+      <p data-sc-cue="0.82 1">전환을 만드는 한 줄.</p>
+    </div>
+  </section>
+
+  <!-- 3 · 전환: flow + reveal. 문서처럼 읽히는 유일한 act.
+       reveal은 글자 상자가 아니라 figure 래퍼에 건다. -->
+  <section class="sc-section" data-sc-act="flow" data-sc-drift="#0b0c0f">
+    <div class="sc-wrap split">
+      <div class="sc-stack" data-sc-in data-sc-stagger="70">
+        <h2 class="sc-display sc-display--lg">무엇이 바뀌는가.</h2>
+        <p class="sc-body">짧은 두 단락.</p>
+      </div>
+      <figure data-sc-reveal="left" data-sc-reveal-at="0.18 0.62">
+        <img src="assets/03.webp" width="1920" height="1080" alt="브랜드가 아니라 이미지 내용을 설명한다.">
+      </figure>
+    </div>
+  </section>
+
+  <!-- 4 · 실체: scrub. 두 번째이자 마지막 클립. -->
+  <section data-sc-act="scrub" data-sc-span="2.2" data-sc-dwell="0.28" data-sc-drift="#0e0f13">
+    <div data-sc-stage>
+      <img class="sc-stage__poster" src="assets/04-poster.webp" alt="">
+      <video data-sc-scrub data-sc-src="assets/04.mp4"
+             data-sc-src-mobile="assets/04-m.mp4" muted playsinline></video>
+      <div class="sc-scrim sc-scrim--trail" aria-hidden="true"></div>
+      <div class="sc-copy sc-copy--trail" data-sc-cue="0.14 0.86">
+        <h2 class="sc-display sc-display--lg" data-sc-kinetic="lines">한 줄로 된 증거.</h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · 범위: pan. span ≈ 항목당 뷰포트 높이 1 + 1.
+       레일의 scrollWidth - innerWidth가 양수인지 직접 측정한다. 부족하면 카드를 넓히지 말고
+       제목·맺음말을 레일 항목으로 넣어 레일을 늘린다. -->
+  <section data-sc-act="pan" data-sc-span="3.2" data-sc-drift="#0a0b0d">
+    <div data-sc-stage>
+      <div class="rail" data-sc-pan="0.06">
+        <div class="rail__lead sc-stack">
+          <h2 class="sc-display sc-display--md">구성.</h2>
+          <p class="sc-body">고르는 방법 한 줄.</p>
+        </div>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-1.webp" alt=""></div><h3>하나</h3><p>…</p></article>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-2.webp" alt=""></div><h3>둘</h3><p>…</p></article>
+        <article class="item"><div data-sc-tilt="6"><img src="assets/item-3.webp" alt=""></div><h3>셋</h3><p>…</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · 결정: pin + 포인터. 페이지의 마지막 요소. 짧은 span, 한 값 cue(유지)로 페이지 끝 전에
+       사라지지 않게 하고, footer를 stage 안에 넣어 CTA 뒤에 죽은 꼬리를 남기지 않는다. -->
+  <section id="join" data-sc-act="pin" data-sc-span="1.15" data-sc-drift="#08090b">
+    <div data-sc-stage class="close" data-sc-spotlight>
+      <div class="close__inner">
+        <h2 class="sc-display sc-display--lg" data-sc-cue="0.06" data-sc-kinetic="lines">마지막에 남기고 싶은 느낌.</h2>
+        <!-- magnet과 cue는 둘 다 transform을 쓰고 magnet이 매 프레임 이긴다.
+             data-sc-rise="0"으로 cue의 상승을 무효화해 등장 애니메이션이 조용히 사라지지 않게 한다.
+             키보드 사용자가 불투명도 0인 버튼에 도달하지 않도록 cue를 일찍 연다. -->
+        <a class="cta" href="#" data-sc-magnet="0.26" data-sc-cue="0.06" data-sc-rise="0">내비게이션과 같은 라벨</a>
+      </div>
+      <footer class="foot"><!-- 로고 + 작은 글씨 --></footer>
+    </div>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inspecting Vibe"
+  short_description: "별도 검수 에이전트로 디자인·UI·영상 품질을 평가하고 반복 개선"
+  default_prompt: "$inspecting-vibe 지금 만든 결과물을 검수하고 각 항목 8점 이상이 되도록 개선해줘."

@@ -1,0 +1,21 @@
+name: skill-tests
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python3 tests/check_portability.py
+      - run: bash -n skills/changelog-update/scripts/changed-files.sh
+      - run: bash -n skills/changelog-update/scripts/cron-run.sh
+      - run: bash -n skills/changelog-verify/scripts/check-detail.sh
+      - run: node skills/motion-web-builder/tests/video-hero.mjs

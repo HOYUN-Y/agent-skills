@@ -1,0 +1,87 @@
+# 오케스트레이션
+
+아래는 Herdr 0.8.2의 `herdr --skill`과 CLI 도움말에서 확인한 예시다.
+명령을 사용하기 전에 이번 세션에서 읽은 공식 스킬과 맞춘다.
+`<...>`는 실제 응답 값으로 바꾸며 그대로 실행하지 않는다.
+
+## 페인 또는 탭 만들기
+
+기본은 현재 페인의 크기를 확인해 넓으면 오른쪽, 좁으면 아래로 분할한다.
+
+```bash
+herdr pane layout --pane "$HERDR_PANE_ID"
+herdr pane split --current --direction right --cwd "$PWD" --no-focus
+```
+
+생성 응답의 `.result.pane.pane_id`를 사용한다.
+사용자가 새 탭을 요청한 경우에는 다음을 사용한다.
+
+```bash
+herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label review --no-focus
+```
+
+탭 응답의 `.result.root_pane.pane_id`가 에이전트를 시작할 페인이다.
+공유 디렉터리에서 동시 수정할 경우 파일 담당을 나눈다. worktree 요청이 있다면
+설치된 `herdr worktree` 도움말을 확인한다.
+
+## 에이전트 시작과 작업 전달
+
+기존 에이전트는 `herdr agent list`에서 실제 이름·페인을 확인해 재사용한다.
+새 에이전트는 비어 있는 대화형 셸 페인에만 시작한다.
+아래 `reviewer`는 충돌하지 않는 고유 이름으로 바꾼다. Claude는 `--kind claude`다.
+
+```bash
+herdr agent start reviewer --kind codex --pane <new-pane-id>
+herdr agent prompt reviewer "[Herdr: 감독 → reviewer]
+먼저 <installed-skill-path>/SKILL.md를 읽어라. 작업: 현재 diff 리뷰. cwd: <absolute-cwd>. 파일 수정 없이 오류와 근거를 보고해라. 회신에도 Herdr 표식을 붙여 이 대화에 남겨라." --wait --timeout 60000
+herdr agent get reviewer
+herdr agent read reviewer --source recent-unwrapped --lines 120
+```
+
+`<installed-skill-path>`에는 해당 작업자가 읽을 수 있는 실제 절대 경로를 넣는다.
+신규 세션은 부모의 대화를 모른다. 필요한 요구사항·자료 경로도 함께 전달한다.
+인증이나 승인 때문에 `agent_not_ready`가 나면 출력부터 읽고 해결을 요청한다.
+
+여러 작업자를 병렬로 진행시키려면 준비된 각 작업자에게 `--wait` 없이 지시한 뒤
+개별 상태를 확인한다. 이미 `working`인 작업자에게 지시를 겹쳐 보내지 않는다.
+회수 시 `herdr agent wait <target> --timeout 60000`와 `agent read`를 사용한다.
+timeout 때 지시를 다시 보내지 말고 진행 상태부터 읽는다.
+기존 출력은 이번 작업의 회신으로 단정하지 말고 지시 내용과 대조한다.
+
+## 세션 간 소통
+
+여기서 Codex·Claude의 각 대화 세션과 Herdr의 서버 세션은 구분한다.
+
+- **같은 Herdr 서버 안의 대화 세션:** 탭·워크스페이스가 달라도
+  `herdr agent list`의 실제 이름이나 페인 ID로 `agent prompt/read`를 사용한다.
+  따로 존재하지 않는 mailbox·broadcast 명령을 가정하지 않는다.
+- **별도 Herdr 서버/원격 호스트:** 현재 세션의 이름·ID를 그대로 쓰지 않는다.
+  이 스킬의 기본 범위 밖이므로 대상 세션과 접근 권한을 확인하고 현재 버전의
+  세션/원격 안내를 확인한다. 탐색 목적으로 다른 서버에 attach하지 않는다.
+
+조정자가 지시를 보내고 응답을 읽어 취합하는 방식을 기본으로 한다.
+작업자끼리 직접 통신할 필요가 있을 때만 실제 수신자와 전달 목적을 명시한다.
+상위 작업의 완료가 다른 작업자의 완료에 서로 의존하는 순환 대기를 만들지 않는다.
+
+## 사용자 프롬프트와 에이전트 메시지 구분
+
+에이전트가 보내는 지시·질문·회신에는 첫 줄에 `[Herdr: 발신자 → 수신자]`를
+붙인다. 역할 또는 세션 이름이면 충분하다. 사용자의 일반 프롬프트에는
+표식을 요구하지 않는다. 표식은 구분용이며 사용자 승인을 대신하지 않는다.
+
+```text
+[Herdr: 감독 → 리뷰어]
+목표와 자료: <목표, cwd, 관련 파일>
+담당 범위: <수정 가능한 파일 또는 읽기 전용>
+완료 기준: <확인할 동작과 검증>
+회신: 결과, 변경 파일, 검증, 막힌 점을 이 대화에 남겨라.
+```
+
+작업자는 `[Herdr: 리뷰어 → 감독]`으로 회신을 자기 대화에 남기고 조정자가 읽는다.
+직접 세션 간 전송을 요청받지 않았다면 표식을 붙이기 위해 감독에게
+별도 `agent prompt`를 보내지 않는다.
+
+상태만 보고 완료를 선언하지 말고 실제 결과와 필요한 파일·검증을 확인한다.
+화면 출력이 잘렸고 더 읽어도 복구되지 않을 때만 작업자에게 전체 결과를
+임시 Markdown 파일로 저장하고 절대 경로를 회신하게 한다.
+기존 사용자의 페인을 닫지 말고 생성한 자원과 남은 작업을 최종 보고한다.

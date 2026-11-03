@@ -1,0 +1,193 @@
+<!doctype html>
+<!--
+  예제: 이미지 띠 무한 이동 (motion-patterns.md §C)
+
+  보여 주는 것
+  - 시간이 아니라 속도(px/s)로 정의 → 화면 폭이 바뀌어도 체감 속도가 같다
+  - 필요한 복제 수를 계산하고, 리사이즈 때 기존 복제를 지운 뒤 다시 만든다
+  - 복제본은 aria-hidden + inert → 스크린리더 중복 읽기·Tab 진입 없음
+  - 사용자 일시정지 버튼, 호버·포커스 시 정지, 화면 밖·백그라운드 탭에서 정지
+    (자동 재개 전에 사용자가 직접 멈췄는지 확인)
+  - 동작 감소: 움직이지 않고 가로 스크롤 가능한 목록으로 남는다
+
+  그림 자리는 CSS 색면으로 대신했다. 실제 이미지로 바꿀 때 비율(4:5)을 유지하거나 --w 를 조정한다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소성 기록 · 도예 공방 오름</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../motion-tokens.css">
+<style>
+  :root {
+    --ground: #e9e4da;
+    --ink: #22201c;
+    --ink-soft: #6d665c;
+    --sans: "Pretendard", "Noto Sans CJK KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+    --serif: "Noto Serif CJK KR", "AppleMyungjo", serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 400 1rem/1.65 var(--sans); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  header {
+    display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 1rem;
+    padding: clamp(3rem, 8vw, 7rem) clamp(1.25rem, 5vw, 5rem) 2rem;
+  }
+  h1 { margin: 0; font: 500 clamp(2rem, 1.2rem + 3.5vw, 4.2rem)/1.1 var(--serif); letter-spacing: -0.03em; word-break: keep-all; }
+  header p { margin: 0.8rem 0 0; color: var(--ink-soft); max-width: 36ch; word-break: keep-all; }
+
+  .toggle {
+    font: inherit; font-size: 0.875rem;
+    background: none; border: 1px solid currentColor; border-radius: 999px;
+    padding: 0.45rem 1rem; color: var(--ink); cursor: pointer;
+  }
+
+  .band { overflow: hidden; padding-block: 0.6rem; }
+  .track { display: flex; width: max-content; will-change: transform; }
+  .group { display: flex; gap: var(--gap); padding-right: var(--gap); margin: 0; list-style: none; padding-left: 0; }
+  .band { --gap: clamp(0.75rem, 1.5vw, 1.25rem); --w: clamp(9.5rem, 16vw, 15rem); }
+
+  figure { margin: 0; width: var(--w); }
+  .plate { aspect-ratio: 4 / 5; border-radius: 3px; background: var(--c); position: relative; overflow: hidden; }
+  /* 유약 흐름처럼 보이는 색면. 실제 이미지가 오면 이 규칙을 지운다. */
+  .plate::after {
+    content: ""; position: absolute; inset: 55% 0 0;
+    background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--c) 60%, #000 40%));
+    opacity: 0.55;
+  }
+  figcaption { display: flex; justify-content: space-between; font-size: 0.8125rem; color: var(--ink-soft); padding-top: 0.45rem; }
+  figcaption b { color: var(--ink); font-weight: 500; }
+
+  /* 동작 감소 또는 정적 모드: 사람이 직접 넘겨 볼 수 있게 */
+  .band.static { overflow-x: auto; scroll-snap-type: x proximity; }
+  .band.static figure { scroll-snap-align: start; }
+  .band.static .group:first-child { padding-left: clamp(1.25rem, 5vw, 5rem); }
+
+  footer { padding: 2.5rem clamp(1.25rem, 5vw, 5rem) 4rem; color: var(--ink-soft); font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>가마에서 막 나온 것들</h1>
+    <p>이번 달 1250도 환원 소성에서 건진 그릇 열두 점. 같은 유약도 놓인 자리마다 다르게 나왔습니다.</p>
+  </div>
+  <button class="toggle" type="button" aria-pressed="false" hidden>움직임 멈춤</button>
+</header>
+
+<section aria-label="이번 달 소성 결과">
+  <div class="band" data-marquee data-dir="-1">
+    <div class="track">
+      <ul class="group">
+        <li><figure><div class="plate" style="--c:#7c8a7a"></div><figcaption><b>청회 사발</b><span>03</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#c7b08a"></div><figcaption><b>재유 접시</b><span>07</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#3e4a52"></div><figcaption><b>흑유 찻잔</b><span>11</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#a4563a"></div><figcaption><b>철채 화병</b><span>14</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#d9d2c3"></div><figcaption><b>백자 합</b><span>18</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#8d7f63"></div><figcaption><b>분청 대접</b><span>22</span></figcaption></figure></li>
+      </ul>
+    </div>
+  </div>
+  <div class="band" data-marquee data-dir="1" data-speed-scale="0.8">
+    <div class="track">
+      <ul class="group">
+        <li><figure><div class="plate" style="--c:#5f6b5a"></div><figcaption><b>녹유 숟가락받침</b><span>02</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#b9a27c"></div><figcaption><b>회령유 컵</b><span>09</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#2f3438"></div><figcaption><b>천목 잔</b><span>13</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#c98f6a"></div><figcaption><b>무유 항아리</b><span>16</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#e2dccf"></div><figcaption><b>백자 면기</b><span>20</span></figcaption></figure></li>
+        <li><figure><div class="plate" style="--c:#6e5b4b"></div><figcaption><b>시유 주전자</b><span>24</span></figcaption></figure></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>번호는 가마 안 선반 위치입니다. 판매 문의는 공방 방문 시에만 받습니다.</footer>
+
+<script>
+(function () {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const toggle = document.querySelector(".toggle");
+  const speed = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sc-marquee-speed")) || 0;
+
+  let userPaused = false;          // 사용자가 직접 멈춘 상태. 자동 재개가 이것을 덮어쓰지 않는다.
+  let docHidden = document.hidden;
+  const bands = [...document.querySelectorAll("[data-marquee]")].map(setup);
+
+  function setup(band) {
+    const track = band.querySelector(".track");
+    const original = track.querySelector(".group");
+    const state = { band, track, original, unit: 0, x: 0, visible: true, hover: false };
+
+    band.addEventListener("pointerenter", () => (state.hover = true));
+    band.addEventListener("pointerleave", () => (state.hover = false));
+    band.addEventListener("focusin", () => (state.hover = true));
+    band.addEventListener("focusout", () => (state.hover = false));
+    new IntersectionObserver(([e]) => (state.visible = e.isIntersecting)).observe(band);
+    return state;
+  }
+
+  // 복제: 기존 복제를 먼저 지우고, 반복 단위(그룹 폭) 기준으로 필요한 수만 만든다.
+  function build(s) {
+    s.track.querySelectorAll(".group[data-clone]").forEach((n) => n.remove());
+    s.unit = s.original.getBoundingClientRect().width;
+    if (isStatic()) { s.x = 0; s.track.style.transform = ""; return; }
+    const need = Math.ceil(s.band.clientWidth / s.unit) + 1;
+    for (let i = 0; i < need; i++) {
+      const c = s.original.cloneNode(true);
+      c.dataset.clone = "";
+      c.setAttribute("aria-hidden", "true");
+      c.inert = true;
+      s.track.append(c);
+    }
+    s.x = ((s.x % s.unit) + s.unit) % s.unit; // 위상 유지
+  }
+
+  const isStatic = () => reduce.matches || speed() === 0;
+
+  function applyMode() {
+    const stat = isStatic();
+    bands.forEach((s) => { s.band.classList.toggle("static", stat); build(s); });
+    toggle.hidden = stat;
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    // 큰 간격(탭 복귀 등)은 잘라서 위치가 튀지 않게 한다.
+    const dt = Math.min(now - last, 64) / 1000;
+    last = now;
+    if (!isStatic() && !userPaused && !docHidden) {
+      for (const s of bands) {
+        if (!s.visible || s.hover || !s.unit) continue;
+        const dir = parseFloat(s.band.dataset.dir) || -1;
+        const k = parseFloat(s.band.dataset.speedScale) || 1;
+        s.x = (s.x + speed() * k * dt) % s.unit;
+        const tx = dir < 0 ? -s.x : s.x - s.unit;
+        s.track.style.transform = `translate3d(${tx}px,0,0)`;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  toggle.addEventListener("click", () => {
+    userPaused = !userPaused;
+    toggle.setAttribute("aria-pressed", String(userPaused));
+    toggle.textContent = userPaused ? "움직임 재생" : "움직임 멈춤";
+  });
+  document.addEventListener("visibilitychange", () => (docHidden = document.hidden));
+  reduce.addEventListener("change", applyMode);   // 실행 중 설정 변경도 반영
+
+  let rt;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(applyMode, 150); });
+
+  // 그림·폰트가 자리를 잡은 뒤 폭을 잰다.
+  Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 400))]).then(() => {
+    applyMode();
+    requestAnimationFrame(frame);
+  });
+})();
+</script>
+</body>
+</html>

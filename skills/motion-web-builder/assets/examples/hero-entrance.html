@@ -1,0 +1,205 @@
+<!doctype html>
+<!--
+  예제: 히어로 순차 등장 (motion-patterns.md §A)
+
+  보여 주는 것
+  - 위계별 차등: 제목(행 마스크, --sc-d-hero) → 부제 → CTA(1.2초 안에 조작 가능) → 보조 정보
+  - 레이아웃 transform(바깥)과 등장 transform(안쪽) 분리
+  - JS가 실패하거나 animationend가 오지 않아도 콘텐츠가 숨겨진 채 남지 않는 복구 경로
+  - 동작 감소: 토큰이 이동을 0으로 만들고 짧은 페이드만 남김
+
+  가져다 쓸 때: 구조를 그대로 복제하지 말고 원리만 가져간다. 문구·색·서체·배치는 새로 정한다.
+  빌드 폴더로 복사하면 motion-tokens.css 경로를 맞춘다.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>밤의 서가 · 열한 시에 여는 책방</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../motion-tokens.css">
+<style>
+  :root {
+    --paper: #f1ece2;
+    --ink: #1d1a16;
+    --ink-soft: #6b6359;
+    --rule: color-mix(in oklab, var(--ink) 18%, transparent);
+    --accent: #b4441f;          /* 한 군데만 쓴다: 영업 여부 표시 */
+    --serif: "Noto Serif CJK KR", "Nanum Myeongjo", "AppleMyungjo", serif;
+    --sans: "Pretendard", "Noto Sans CJK KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 1rem/1.7 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+  .hero {
+    min-height: 100svh;
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+    grid-template-rows: auto 1fr auto;
+    gap: 0 clamp(1.5rem, 4vw, 4rem);
+    padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1.25rem, 5vw, 5rem);
+  }
+  .bar {
+    grid-column: 1 / -1;
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.9rem;
+    font-size: 0.875rem;
+  }
+  .bar strong { font-family: var(--serif); font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
+  .open { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* 제목: 왼쪽 아래로 무게를 둔 비대칭 배치. 중앙 정렬 템플릿을 피한다. */
+  .title {
+    grid-column: 1; align-self: end;
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(2.6rem, 1.4rem + 6vw, 7rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    word-break: keep-all;
+  }
+  /* 행 마스크: 바깥 .line은 잘라내기만, 안쪽 span이 움직인다. 아래 여백으로 받침 글리프 보호 */
+  .line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+  .line > span { display: inline-block; }
+
+  .side {
+    grid-column: 2; align-self: end;
+    display: grid; gap: 1.6rem;
+    padding-bottom: 0.6rem;
+  }
+  .lede { margin: 0; color: var(--ink-soft); max-width: 30ch; word-break: keep-all; }
+  .cta {
+    justify-self: start;
+    display: inline-flex; gap: 0.6rem; align-items: center;
+    padding: 0.85rem 1.25rem;
+    background: var(--ink); color: var(--paper);
+    border-radius: 2px;
+    text-decoration: none; font-weight: 500;
+    transition: transform var(--sc-d-fast) var(--sc-ease-out), background var(--sc-d-base) var(--sc-ease-out);
+  }
+  .cta:hover { transform: translateY(var(--sc-hover-lift)); background: #000; }
+  .cta:active { transform: scale(var(--sc-press-scale)); }
+  .cta svg { width: 1em; height: 1em; transition: transform var(--sc-d-base) var(--sc-ease-out); }
+  .cta:hover svg { transform: translateX(4px); }
+
+  .visit { padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 5vw, 5rem); border-top: 1px solid var(--rule); }
+  .visit h2 { margin: 0 0 0.6rem; font: 500 1.6rem/1.3 var(--serif); letter-spacing: -0.02em; }
+  .visit p { margin: 0; color: var(--ink-soft); max-width: 40ch; word-break: keep-all; }
+
+  .meta {
+    grid-column: 1 / -1;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 2rem;
+    margin: 2.2rem 0 0; padding: 0.9rem 0 0;
+    border-top: 1px solid var(--rule);
+    list-style: none; font-size: 0.8125rem; color: var(--ink-soft);
+  }
+
+  /* ---- 등장. html.motion 일 때만 숨긴다 (JS 없으면 처음부터 보인다) ---- */
+  .motion [data-enter] { opacity: 0; }
+  .motion .line > span { transform: translateY(var(--sc-mask-y)); }
+  .motion.play [data-enter] {
+    animation: enter var(--sc-d-enter) var(--sc-ease-out) both;
+    animation-delay: var(--delay, 0ms);
+  }
+  .motion.play .line > span {
+    animation: rise var(--sc-d-hero) var(--sc-ease-out) both;
+    animation-delay: var(--delay, 0ms);
+  }
+  @keyframes enter { from { opacity: 0; transform: translateY(var(--sc-shift-sm)); } to { opacity: 1; transform: none; } }
+  @keyframes rise  { from { transform: translateY(var(--sc-mask-y)); } to { transform: none; } }
+  /* 복구 상태: 어떤 경로로든 최종 가시 상태 */
+  .motion.done [data-enter], .motion.done .line > span { opacity: 1; transform: none; animation: none; }
+  /* 동작 감소: 이동은 토큰이 0으로 만들고, 순차 지연도 없앤다 */
+  @media (prefers-reduced-motion: reduce) {
+    .motion.play [data-enter], .motion.play .line > span { animation-delay: 0ms; }
+  }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; }
+    .title { grid-column: 1; align-self: end; margin-top: 14vh; font-size: clamp(2.8rem, 14vw, 4.6rem); }
+    .side { grid-column: 1; margin-top: 1.6rem; }
+  }
+  /* 짧은 가로 화면: 제목을 높이 기준으로 줄여 CTA가 첫 화면에 들어오게 한다 */
+  @media (max-height: 480px) and (orientation: landscape) {
+    .hero { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); grid-template-rows: auto 1fr auto; }
+    .title { grid-column: 1; margin-top: 1rem; font-size: 15vh; }
+    .side { grid-column: 2; margin-top: 0; gap: 1rem; }
+    .lede { font-size: 0.875rem; }
+    .meta { margin-top: 1rem; }
+  }
+</style>
+<script>document.documentElement.classList.add("motion");</script>
+</head>
+<body>
+<main class="hero">
+  <div class="bar">
+    <strong>밤의 서가</strong>
+    <span class="open" data-enter style="--delay: 1100ms">목–일 23:00 – 03:00</span>
+  </div>
+
+  <h1 class="title" aria-label="잠들기 전, 한 권만 더.">
+    <span class="line" aria-hidden="true"><span style="--delay: 120ms">잠들기 전,</span></span>
+    <span class="line" aria-hidden="true"><span style="--delay: 210ms">한 권만 더.</span></span>
+  </h1>
+
+  <div class="side">
+    <p class="lede" data-enter style="--delay: 620ms">
+      망원동 골목 2층. 불을 낮춘 열두 좌석과 주인이 직접 고른 서른 권. 커피 대신 보리차가 나옵니다.
+    </p>
+    <a class="cta" href="#visit" data-enter style="--delay: 780ms">
+      오늘 자리 확인
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+    </a>
+  </div>
+
+  <ul class="meta" data-enter style="--delay: 1100ms">
+    <li>마포구 망원로 ○○ 2층 (예시 주소)</li>
+    <li>목–일 운영</li>
+    <li>음료 1잔 포함 입장</li>
+  </ul>
+</main>
+
+<section class="visit" id="visit">
+  <h2>자리는 문 앞에서 정합니다</h2>
+  <p>예약은 받지 않습니다. 열두 자리가 차면 문에 "만석" 팻말이 걸립니다. 남은 자리는 인스타그램 스토리에 30분마다 올립니다. (예시 운영 방식)</p>
+</section>
+
+<script>
+  // 재생 시작과, 끝나지 않을 경우를 대비한 복구. 복구는 여러 번 불려도 결과가 같다.
+  (function () {
+    const root = document.documentElement;
+    const finish = () => root.classList.add("done");
+    // 복구 타이머를 가장 먼저 건다. 아래 코드가 어디서 실패해도 콘텐츠가 숨겨진 채 남지 않는다.
+    // 가장 늦은 delay + 가장 긴 duration 보다 넉넉하게. 탭이 백그라운드여도 결국 보이게 한다.
+    setTimeout(finish, 2600);
+
+    // 영업 여부: 자정 넘어 03시까지는 전날 영업으로 본다. JS가 없으면 기본 문구(목–일)가 남는다.
+    const now = new Date();
+    const day = (now.getHours() < 3 ? now.getDay() + 6 : now.getDay()) % 7;
+    const open = [4, 5, 6, 0].includes(day);
+    document.querySelector(".open").textContent = open ? "오늘 23:00 – 03:00 영업" : "오늘 휴무 · 목요일 23시에 엽니다";
+
+    const animated = document.querySelectorAll("[data-enter], .line > span");
+    let pending = animated.length;
+
+    animated.forEach((el) => el.addEventListener("animationend", () => {
+      if (--pending <= 0) finish();
+    }, { once: true }));
+
+    // 폰트가 늦게 오면 행 마스크가 엉뚱한 줄 높이로 시작한다. 폰트를 기다리되 오래 기다리지 않는다.
+    const start = () => requestAnimationFrame(() => root.classList.add("play"));
+    const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+    Promise.race([fontsReady, new Promise((r) => setTimeout(r, 400))]).then(start);
+  })();
+</script>
+</body>
+</html>
