@@ -38,3 +38,5 @@ jobs:
           mkdir -p $HOME && cd $HOME
           npx -y skills add HOYUN-Y/agent-skills -g -y
           find $HOME -path '*secondbrain-index-sync/SKILL.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/references/setup.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/references/full-reindex.md' | grep .
