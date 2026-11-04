@@ -5,6 +5,7 @@ Claude Code와 Codex에서 함께 쓰는 세컨드 브레인 색인 스킬입니
 - **라우터** `CLAUDE.md`: 영역 색인, 외부 자료 폴더, 주제 MOC, 운영 규칙, 비공개 목록
 - **영역 색인** `work.md`, `personal.md` 등. 100줄이 넘으면 `<색인>--<주제>.md`로 나눕니다.
 - **주제 MOC** `moc-<주제>.md`: 업무와 개인 자료를 주제로 묶습니다.
+- **프로젝트 안내** `project-<이름>.md`: 문서·코드·규칙표 정본과 상태·변경기록을 짧게 연결합니다.
 - **외부 자료** `src-<이름>`: Drive나 다른 폴더의 원본을 가리키는 심볼릭 링크입니다.
 
 ## 설치
@@ -49,7 +50,8 @@ powershell -ExecutionPolicy Bypass -File install.ps1 C:\second-brain   # Windows
 ## 안전 규칙
 
 - 원본은 이동하거나 수정하거나 삭제하지 않습니다.
-- 라우터의 "비공개" 줄에 백틱으로 적은 경로와 그 하위는 읽지 않습니다.
+- 라우터의 "비공개" 줄에 적힌 경로와 명시적으로 지정한 `.secondbrain/private-paths.txt` 장부의 합집합 및 그 하위는 읽지 않습니다. 장부는 선택 기능이며 기존 볼트는 자동 전환하지 않습니다.
+- 장부는 라우터에 `- 비공개 장부: .secondbrain/private-paths.txt`로 지정하고(실제 줄에는 백틱 없음), UTF-8 상대경로를 한 줄씩 씁니다. 장부만 남거나 표식을 해석하지 못하는 경우, 지정 장부가 누락·읽기 실패·잘못된 경로이면 자료 탐색 전에 중단합니다. Codex도 검색 전에 장부를 확인해야 하며 Claude 차단 설정도 유지합니다.
 - `.env`, 키, 토큰처럼 보이는 파일 이름은 열지 않습니다. 처음 설정할 때 볼트에 `.claude/settings.json`을 만들어 Claude Code가 이런 파일을 읽거나 `src-` 원본을 고치는 것을 막습니다. Codex에는 적용되지 않습니다.
 - 주민번호나 비밀번호 형식이 보이는 문서는 발췌하지 않고 따로 표시합니다.
 
@@ -57,6 +59,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1 C:\second-brain   # Windows
 
 ```sh
 python3 -I scripts/check_index.py --selftest
+python3 -I scripts/manifest.py --selftest
 python3 -I scripts/doc_manifest.py --selftest
 python3 -I scripts/build_topics.py --selftest
 ```

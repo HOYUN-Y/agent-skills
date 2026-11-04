@@ -15,6 +15,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -I scripts/check_index.py --selftest
+      - run: python -I scripts/manifest.py --selftest
       - run: python -I scripts/doc_manifest.py --selftest
       - run: python -I scripts/build_topics.py --selftest
       - if: runner.os != 'Windows'
