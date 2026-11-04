@@ -10,10 +10,12 @@ Usage:
 import os, re, sys, time, tempfile, unicodedata
 from urllib.parse import unquote
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from private_paths import load_private_paths, SECRET_RE
+
 ROUTER = "CLAUDE.md"
 SKIP_NAMES = {".DS_Store", "AGENTS.md", ROUTER, "Icon\r"}
 # Names that look like credentials. ".key" is deliberately absent: here it means Keynote.
-SECRET_RE = re.compile(r"(^\.env|\.pem$|\.p12$|\.pfx$|\.keystore$|^id_(rsa|ed25519|ecdsa)|token|secret|credential|password|api[ _-]?keys?\b|\.ppk$|비밀번호|\.netrc$)", re.I)
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
 CODE_RE = re.compile(r"`[^`]*`")
 MAX_LINES = 100                     # an index longer than this should be split into sub-indexes
@@ -81,7 +83,11 @@ def run(root, normalize=False, out=print):
     router = read(rpath)
     if router is None:
         out(f"ERROR: {ROUTER} 읽기 실패: {rpath}"); return 2
-    private = private_names(router)
+    try:
+        private = load_private_paths(root, router)
+    except (OSError, UnicodeError, ValueError) as error:
+        out(f"ERROR: 비공개 목록/장부 확인 실패 ({type(error).__name__})")
+        return 2
 
     def is_private(p):
         rel = nfc(relp(p, root)).replace(os.sep, "/")
@@ -104,7 +110,7 @@ def run(root, normalize=False, out=print):
                     and not SECRET_RE.search(os.path.basename(p)) and not is_private(p)):
                 guides.append(p); queue.append(p); parent[p] = cur
     docs = [rpath] + [g for g in guides if relp(g, root) not in unreadable]
-    out(f"# 점검 대상\nroot: {root}\n문서: {', '.join(relp(d, root) for d in docs)}\n비공개(읽지 않음): {', '.join(sorted(private)) or '없음'}")
+    out(f"# 점검 대상\nroot: {root}\n문서: {', '.join(relp(d, root) for d in docs)}\n비공개(읽지 않음): {len(private)}개 (라우터와 지정 장부의 합집합)")
 
     linked = {}          # abs path -> [doc]
     broken, mismatch, dups, private_links = [], [], [], []
@@ -197,10 +203,15 @@ def run(root, normalize=False, out=print):
         n = len((read(d) or "").splitlines())
         if n > MAX_LINES and d != rpath:
             too_long.append((relp(d, root), f"{n}줄"))
-        par = parent.get(d)
-        if par and par != rpath:   # a sub-index must be named <parent name>--<topic>.md
-            stem = nfc(os.path.splitext(os.path.basename(par))[0])
-            if not nfc(os.path.basename(d)).startswith(stem + "--"):
+        name = os.path.splitext(os.path.basename(d))[0]
+        if "--" in name:
+            expected = nfc(name.rsplit("--", 1)[0] + ".md")
+            if not any(nfc(os.path.basename(g)) == expected for g in docs):
+                bad_names.append((relp(d, root), f"상위 색인 {expected}에 라우터에서 도달할 수 없음"))
+        else:
+            par = parent.get(d)
+            if par and par != rpath:
+                stem = nfc(os.path.splitext(os.path.basename(par))[0])
                 bad_names.append((relp(d, root), f"{stem}--<주제>.md 형식이 아님"))
     # Index documents on disk that the router -> field index chain cannot reach
     orphans_sub, orphans_doc = [], []
@@ -221,6 +232,8 @@ def run(root, normalize=False, out=print):
             if p and os.path.normpath(p) not in targets and os.path.normpath(p) != os.path.normpath(d):
                 code_only.append((relp(d, root), tok))
     section(f"{MAX_LINES}줄을 넘는 색인 (하위 색인으로 분할 필요) — 문서 | 줄 수", too_long)
+    section("8000자를 넘는 라우터 (핵심 안내와 별도 장부 분리 권장)",
+            [(ROUTER, f"{len(router)}자")] if len(router) > 8000 else [])
     section("연결되지 않은 하위 색인 (재사용 대상: 상위 색인에 다시 연결)", orphans_sub)
     section("라우터에서 닿지 않는 안내 문서 (분야 표에 연결하거나 보류)", orphans_doc)
     section("코드 표기로만 적힌 경로 (링크로 바꿔야 함) — 문서 | 표기", code_only)
@@ -245,6 +258,69 @@ def run(root, normalize=False, out=print):
 
 
 def selftest():
+    assert all(SECRET_RE.search(name) for name in ["env", "env.txt", "hermes_env.txt", "mykey.txt", "keys.txt", "local.env", "cert.p12"])
+    assert not SECRET_RE.search("nearby-keyword.ts") and not SECRET_RE.search("slides.key")
+    with tempfile.TemporaryDirectory() as t:
+        os.makedirs(os.path.join(t, ".secondbrain"))
+        ledger = os.path.join(t, ".secondbrain", "private-paths.txt")
+        router = "- 비공개: `legacy`\n- 비공개 장부: .secondbrain/private-paths.txt\n"
+        assert load_private_paths(t, "- 비공개: `legacy`\n") == {"legacy"}
+        try:
+            load_private_paths(t, router)
+        except FileNotFoundError:
+            pass
+        else:
+            raise AssertionError("missing ledger must abort")
+        open(ledger, "w", encoding="utf-8").write("\ufeff# comment\r\nsrc-x/비밀/\r\nnot-created-yet\nsrc-x/[token]\n")
+        assert load_private_paths(t, router) == {"legacy", "src-x/비밀", "not-created-yet", "src-x/[token]"}
+        for malformed in ["# Router\n", "- **비공개 장부:** .secondbrain/private-paths.txt\n"]:
+            try:
+                load_private_paths(t, malformed)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("missing or malformed marker must abort")
+        os.remove(ledger)
+        try:
+            load_private_paths(t, "- **비공개 장부:** .secondbrain/private-paths.txt\n")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("malformed marker without ledger must abort")
+        for invalid in ["/", "/outside", "../outside", "a/../b", "C:/outside", "a\\b", "a/*", "a//b"]:
+            open(ledger, "w", encoding="utf-8").write(invalid)
+            try:
+                load_private_paths(t, router)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("invalid ledger path accepted")
+        open(ledger, "wb").write(b"\xff")
+        try:
+            load_private_paths(t, router)
+        except UnicodeDecodeError:
+            pass
+        else:
+            raise AssertionError("invalid ledger encoding accepted")
+        open(ledger, "w", encoding="utf-8").write("src-x/hidden\n")
+        os.makedirs(os.path.join(t, "src-x", "hidden"))
+        open(os.path.join(t, "src-x", "hidden", "note.md"), "w").write("private source")
+        open(os.path.join(t, ROUTER), "w", encoding="utf-8").write(router + "[card](project.md) [guide](g.md)\n")
+        open(os.path.join(t, "project.md"), "w", encoding="utf-8").write("[deep](g--topic.md)\n")
+        open(os.path.join(t, "g.md"), "w", encoding="utf-8").write("[topic](g--topic.md)\n")
+        open(os.path.join(t, "g--topic.md"), "w", encoding="utf-8").write("`src-x/hidden/note.md`\n")
+        lines = []; run(t, out=lines.append)
+        report = "\n".join(lines)
+        assert "하위 색인 이름 규칙 위반 — 문서 | 이유 (0)" in report, report
+        assert "코드 표기로만 적힌 경로 (링크로 바꿔야 함) — 문서 | 표기 (0)" in report, report
+        assert "src-x/hidden" not in report, report
+        with open(os.path.join(t, "project.md"), "a", encoding="utf-8") as f:
+            f.write("[blocked](src-x/hidden/note.md)\n")
+        lines.clear(); run(t, out=lines.append)
+        assert "비공개 경로를 가리키는 링크 (제거 필요) (1)" in "\n".join(lines)
+        os.remove(ledger)
+        lines.clear(); assert run(t, out=lines.append) == 2
+        assert len(lines) == 1 and lines[0].startswith("ERROR: 비공개 목록/장부 확인 실패"), lines
     with tempfile.TemporaryDirectory() as t:
         os.makedirs(os.path.join(t, "A 폴더", "sub"))
         os.makedirs(os.path.join(t, "비밀함"))

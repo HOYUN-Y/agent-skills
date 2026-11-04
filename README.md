@@ -62,6 +62,7 @@ bash -n skills/changelog-update/scripts/cron-run.sh
 bash -n skills/changelog-verify/scripts/check-detail.sh
 node skills/motion-web-builder/tests/video-hero.mjs
 python3 -I skills/secondbrain-index-sync/scripts/check_index.py --selftest
+python3 -I skills/secondbrain-index-sync/scripts/manifest.py --selftest
 python3 -I skills/secondbrain-index-sync/scripts/doc_manifest.py --selftest
 python3 -I skills/secondbrain-index-sync/scripts/build_topics.py --selftest
 ```

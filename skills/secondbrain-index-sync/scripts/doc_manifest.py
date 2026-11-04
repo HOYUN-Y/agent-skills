@@ -10,8 +10,10 @@ Usage: python3 -I doc_manifest.py <vault> <out_dir>
 """
 import os, re, sys, shutil, subprocess, tempfile, unicodedata, zipfile, html
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from private_paths import load_private_paths, SECRET_RE as SECRET
+
 nfc = lambda s: unicodedata.normalize("NFC", s)
-SECRET = re.compile(r"(^\.env|\.pem$|\.ppk$|^id_(rsa|ed25519|ecdsa)|token|secret|credential|password|비밀번호|api[ _-]?keys?\b|\.netrc$)", re.I)
 SKIP_DIRS = {"node_modules", ".git", ".venv", "venv", "site-packages", "__pycache__", ".conda", "staticfiles", ".next", "dist", "build", ".changelog-backups"}
 EXTS = (".pdf", ".docx", ".doc", ".rtf", ".odt", ".pptx", ".xlsx")
 SENSITIVE = re.compile(r"(\d{6}\s?-\s?[1-4]\d{6}|(비밀번호|비번|password|passwd|pw)\s*[:=：]\s*\S|주민등록번호)", re.I)
@@ -48,7 +50,7 @@ def extract(path):
 
 def main(vault, out_dir):
     router = open(os.path.join(vault, "CLAUDE.md"), encoding="utf-8").read()
-    private = {nfc(n).rstrip("/") for line in router.splitlines() if "비공개" in line for n in re.findall(r"`([^`]+)`", line)}
+    private = load_private_paths(vault, router)
     is_private = lambda rel: any(rel == n or rel.startswith(n + "/") for n in private)
     os.makedirs(out_dir, exist_ok=True)
     sensitive, failed = [], []
@@ -56,7 +58,7 @@ def main(vault, out_dir):
         rows = []
         for dp, dn, fn in os.walk(os.path.join(vault, src), followlinks=True):
             rel_dp = nfc(os.path.relpath(dp, vault)).replace(os.sep, "/")
-            dn[:] = sorted(d for d in dn if d not in SKIP_DIRS and not d.startswith(".") and not d.startswith("eclipse")
+            dn[:] = sorted(d for d in dn if d not in SKIP_DIRS and not SECRET.search(d) and not d.startswith(".") and not d.startswith("eclipse")
                            and not is_private(f"{rel_dp}/{nfc(d)}"))
             for f in sorted(fn):
                 rel = f"{rel_dp}/{nfc(f)}"
@@ -95,6 +97,22 @@ def selftest():
         assert "src-a/plan.docx | 배포 계획 1차 & 2차" in docs and "src-a/note.odt | 운영 메모" in docs, docs
         assert "hidden" not in docs and "id.docx" not in docs, docs
         assert open(os.path.join(t, "out", "sensitive.txt"), encoding="utf-8").read() == "src-a/id.docx\n"
+        os.makedirs(os.path.join(t, ".secondbrain"))
+        open(os.path.join(t, "CLAUDE.md"), "w", encoding="utf-8").write(
+            "- 비공개 장부: .secondbrain/private-paths.txt\n")
+        ledger = os.path.join(t, ".secondbrain", "private-paths.txt")
+        open(ledger, "w", encoding="utf-8").write("src-a/비밀\nsrc-a/plan.docx\n")
+        main(t, os.path.join(t, "ledger-out"))
+        docs = open(os.path.join(t, "ledger-out", "src-a.docs.txt"), encoding="utf-8").read()
+        assert "plan.docx" not in docs and "hidden" not in docs and "note.odt" in docs, docs
+        os.remove(ledger)
+        try:
+            main(t, os.path.join(t, "missing-out"))
+        except FileNotFoundError:
+            pass
+        else:
+            raise AssertionError("missing ledger must abort")
+        assert not os.path.exists(os.path.join(t, "missing-out"))
     print("selftest ok")
 
 
