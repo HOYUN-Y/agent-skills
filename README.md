@@ -51,6 +51,10 @@ fi
 - **motion:** 캡처 도구의 런타임 요구는 스킬 지침을 따릅니다. 포함된 엔진의 [출처](skills/motion-web-builder/engine/UPSTREAM.md)와 [라이선스](skills/motion-web-builder/engine/LICENSE)를 유지합니다.
 - **research:** 브라우저 제어 도구가 필요합니다. 플랫폼 접근과 로그인 상태에 따라 확인 범위가 달라집니다.
 
+## 공통 코드 리뷰어
+
+[Code Reviewer](reviewer/README.md)는 공통 지침에서 Claude Code·Codex용 프로젝트 서브에이전트 정의를 생성합니다. 요청 시에만 변경사항·전체 저장소·특정 영역을 검토하도록 구성하며 결함과 개선 제안을 구분합니다. 스킬 설치와 별개인 도구입니다. Claude의 합성 예제 실행과 Codex의 Herdr 대화형 전용 호출·공통 지침 주입·결함 발견을 확인했습니다. 환경별 검증 범위와 한계는 리뷰어 문서를 참고하세요.
+
 ## 검증
 
 기존 저장소의 테스트를 위치만 맞춰 실행합니다. Python·Node.js 표준 모듈을 사용합니다.
