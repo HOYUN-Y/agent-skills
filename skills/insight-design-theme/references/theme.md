@@ -4,6 +4,8 @@
 
 시각 견본: `assets/examples/showcase.json`을 빌드하면 색·글꼴·블록이 한 문서에 나온다.
 
+이 저장소의 번역 전용 판본은 `skills/translating-report/assets/translation-mosaic.html`이다. 브랜드 색·글꼴·로고를 변경하면 해당 템플릿도 비교해 갱신한다. 번역 스킬은 이 템플릿을 내장하므로 별도 설치본에서는 원본 테마 변경이 자동 반영되지 않는다.
+
 ## 목차
 1. 핵심 개념
 2. 로고

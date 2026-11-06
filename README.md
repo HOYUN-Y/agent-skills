@@ -1,6 +1,6 @@
 # Agent Skills
 
-Codex와 Claude Code에서 사용하는 개인 스킬 8개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
+Codex와 Claude Code에서 사용하는 개인 스킬 9개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
 
 | 스킬 | 용도 |
 |---|---|
@@ -12,6 +12,7 @@ Codex와 Claude Code에서 사용하는 개인 스킬 8개를 한곳에서 관�
 | [ai-use-case-research](skills/ai-use-case-research/SKILL.md) | 브라우저로 AI 활용 사례 조사 |
 | [secondbrain-index-sync](skills/secondbrain-index-sync/SKILL.md) | 세컨드브레인 색인·주제 연결 관리 |
 | [insight-design-theme](skills/insight-design-theme/SKILL.md) | Artificial Insight 디자인 테마로 인스타 카드·PDF·PPT 제작 |
+| [translating-report](skills/translating-report/SKILL.md) | 자연스러운 한국어 번역·원문 대조·내장 Artificial Insight Mosaic HTML/PDF 템플릿 |
 
 ## 설치와 갱신
 
@@ -39,6 +40,8 @@ fi
 링크 설치는 `git pull --ff-only` 후 변경이 반영되지만, 커밋 전 수정과 브랜치 전환도 즉시 영향을 줍니다. 안정적인 버전이 필요하면 폴더를 복사하고 갱신 시 기존 내용과 비교하세요. 실행 중인 에이전트가 이미 읽은 지침은 새 세션에서 다시 확인하세요. Windows 설치는 스킬 폴더 전체를 복사할 수 있습니다.
 
 ### 스킬별 추가 설정
+
+- **translating-report:** 기본 Mosaic HTML 템플릿이 포함돼 별도 테마 스킬 설치 없이 사용합니다. 글꼴 파일은 포함하지 않으며, 정확한 브랜드 글꼴이 필요하면 `insight-design-theme/scripts/fetch_fonts.py`로 받은 정적 글꼴(인터넷 필요)을 data URI로 내장합니다. 받지 않으면 시스템 대체 글꼴로 진행합니다. 기본 결과물은 Markdown·단일 HTML·검증기록이고 PDF는 요청 시 같은 HTML에서 출력합니다. 예: `$translating-report 이 논문을 자연스러운 한국어로 번역하고 PDF도 만들어줘`.
 
 - **changelog:** 두 스킬을 같은 설치 디렉터리에 나란히 둡니다. 아래 기존 설치기는 복사 설치하며 이미 설치되어 있으면 중단합니다. 작업 폴더 설정은 설치본에만 저장됩니다.
 
