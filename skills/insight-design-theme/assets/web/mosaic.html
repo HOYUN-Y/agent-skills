@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Mosaic</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Mosaic(B): 밝은 슬레이트 점 격자 지면. 픽셀 밀도가 점점 높아져 네이비 면으로 합쳐진다 */
+  :root { --ink-2: #3B4760; --muted: #475569; --label: #5B6A80; --gold-ink: #94600A; --closing-bottom: 145mm; }
+  .fmt-card { --closing-bottom: 70mm; }
+  .page { background: var(--slate-100); }
+  .grid-bg { position: absolute; inset: 0; background-image: radial-gradient(circle, #c9d2de 0.8px, transparent 0.9px); background-size: 12px 12px; background-position: 6px 6px; }
+  .art { position: absolute; inset: 0; pointer-events: none; }
+  .head { position: absolute; top: var(--head-top); left: var(--mx); right: var(--mx); display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 8pt; color: var(--muted); }
+  .head .brand { display: flex; align-items: center; gap: 8px; font-family: var(--sans); font-weight: 700; font-size: 9.5pt; color: var(--navy-800); letter-spacing: -.01em; }
+  .foot { color: var(--muted); }
+
+  /* 표지 */
+  .cover .issue-no { position: absolute; top: 30mm; right: var(--mx); }
+  .cover .title-block { position: absolute; top: 56mm; left: var(--mx); right: var(--mx); }
+  .eyebrow { font-family: var(--mono); font-size: 8.5pt; font-weight: 600; color: var(--navy-800); display: inline-flex; gap: 8px; align-items: center; }
+  .eyebrow b { background: var(--navy-800); color: var(--slate-100); padding: 3px 7px; font-weight: 600; }
+  .cover h1 { margin-top: 8mm; font-size: 44pt; line-height: 1.12; font-weight: 900; letter-spacing: -.035em; color: var(--navy-800); }
+  .cover h1 span { display: block; }
+  .cover .sub { margin-top: 6mm; font-size: 12.5pt; color: var(--muted); font-weight: 500; max-width: 130mm; line-height: 1.55; }
+  .cover .meta { margin-top: 9mm; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 10mm; }
+  .cover .meta dt { font-family: var(--mono); font-size: 7.5pt; color: var(--muted); letter-spacing: .08em; }
+  .cover .meta dd { margin-top: 1.5mm; font-size: 10pt; font-weight: 700; color: var(--navy-800); }
+  .cover .bottom { position: absolute; left: var(--mx); bottom: 15mm; color: var(--ivory); }
+  .cover .bottom b { font-size: 12pt; font-weight: 800; display: block; }
+  .cover .bottom span { font-size: 9.5pt; color: var(--slate-300); margin-top: 1.5mm; display: block; }
+  .fmt-card .cover .issue-no { top: 17mm; }
+  .fmt-card .cover .title-block { top: 26mm; }
+  .fmt-card .eyebrow { font-size: 7.5pt; }
+  .fmt-card .cover h1 { margin-top: 5mm; font-size: 27pt; }
+  .fmt-card .cover .sub { margin-top: 4mm; font-size: 10.5pt; }
+  .fmt-card .cover .meta { margin-top: 5mm; gap: 0 6mm; }
+  .fmt-card .cover .meta dd { font-size: 9pt; }
+  .fmt-card .cover .bottom { bottom: 8mm; }
+  .fmt-card .cover .bottom b { font-size: 10pt; }
+  .fmt-card .cover .bottom span { font-size: 8pt; }
+
+  /* 섹션 제목 */
+  .closing .inner { bottom: var(--closing-bottom); }
+  .sec { display: flex; align-items: flex-end; justify-content: space-between; gap: 6mm; border-bottom: 2px solid var(--navy-800); padding-bottom: 3.5mm; }
+  .sec h2 { font-size: 24pt; font-weight: 900; letter-spacing: -.03em; line-height: 1.2; }
+  .sec h2 small { font-size: 13pt; font-weight: 700; color: var(--label); margin-left: 6px; }
+  .sec .tag { font-family: var(--mono); font-size: 8pt; font-weight: 600; color: var(--muted); text-align: right; line-height: 1.5; flex: none; }
+  .fmt-card .sec { padding-bottom: 2.5mm; }
+  .fmt-card .sec h2 { font-size: 17pt; }
+  .fmt-card .sec h2 small { font-size: 10pt; }
+  .fmt-card .sec .tag { font-size: 7pt; }
+
+  /* 문단·목록·강조·인용 */
+  .lead { margin-top: 4.5mm; font-size: 11.5pt; line-height: 1.6; color: var(--muted); }
+  .lead + .lead { margin-top: 2mm; }
+  .list { margin-top: 4.5mm; list-style: none; display: flex; flex-direction: column; gap: 2.4mm; }
+  .list li { display: grid; grid-template-columns: 6mm 1fr; font-size: 11.5pt; line-height: 1.55; color: var(--ink-2); }
+  .list li i { width: 6px; height: 6px; margin-top: 2.4mm; background: var(--navy-800); }
+  .list li b { font-family: var(--mono); font-size: 9pt; font-weight: 700; color: var(--label); padding-top: 1px; }
+  .callout { margin-top: 5mm; background: var(--navy-800); color: var(--ivory); padding: 5.5mm 6.5mm; display: grid; grid-template-columns: 8mm 1fr; }
+  .callout h4 { font-size: 12.5pt; font-weight: 800; }
+  .callout p { margin-top: 1.5mm; font-size: 11pt; line-height: 1.6; color: var(--slate-300); }
+  .callout h4 + p { margin-top: 1.5mm; }
+  .quote { margin-top: 6mm; display: grid; grid-template-columns: 10mm 1fr; }
+  .quote p { font-size: 15pt; font-weight: 700; line-height: 1.5; letter-spacing: -.01em; color: var(--navy-800); }
+  .quote cite { display: block; margin-top: 2mm; font-style: normal; font-family: var(--mono); font-size: 8.5pt; color: var(--label); }
+  .fmt-card .lead, .fmt-card .list li { font-size: 10.5pt; }
+  .fmt-card .callout { padding: 4mm 4.5mm; grid-template-columns: 6mm 1fr; }
+  .fmt-card .callout h4 { font-size: 11pt; }
+  .fmt-card .callout p { font-size: 10pt; }
+  .fmt-card .quote p { font-size: 13pt; }
+
+  /* 큰 숫자 */
+  .stats { margin-top: 5mm; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 4mm; }
+  .stat { background: #fff; border: 1px solid var(--slate-200); padding: 5mm 5.5mm; }
+  .stat .v { display: flex; align-items: center; justify-content: space-between; gap: 3mm; }
+  .stat b { font-size: 30pt; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; color: var(--navy-800); }
+  .stat span { display: block; margin-top: 2.5mm; font-size: 11pt; font-weight: 700; line-height: 1.4; color: var(--navy-800); }
+  .stat small { display: block; margin-top: 1mm; font-size: 10pt; line-height: 1.45; color: var(--muted); }
+  .stat .cells { margin-top: 3mm; }
+  .statsw { margin-top: 5mm; }
+  .statsw .stats { margin-top: 0; }
+  .sunit { margin-top: 2.2mm; display: flex; align-items: center; gap: 1.6mm; font-family: var(--mono); font-size: 8.5pt; color: var(--label); }
+  .fmt-card .stats { --n: 2 !important; gap: 3mm; }
+  .fmt-card .stat { padding: 3.5mm 4mm; }
+  .fmt-card .stat .cells { margin-top: 2.2mm; }
+  .fmt-card .stat b { font-size: 22pt; }
+  .fmt-card .stat span { font-size: 10pt; }
+  .fmt-card .stat small { font-size: 9pt; }
+
+  /* 단계 카드 */
+  .cards { margin-top: 6mm; display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .cards .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .card { background: #fff; border: 1px solid var(--slate-200); padding: 6.5mm 6.5mm 6mm; display: flex; flex-direction: column; }
+  .card .row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card .no { font-family: var(--mono); font-size: 9pt; font-weight: 700; color: var(--label); }
+  .card h3 { margin-top: 2.5mm; font-size: 17pt; font-weight: 900; letter-spacing: -.02em; }
+  .card .ses { margin-top: 1.5mm; font-size: 9pt; font-weight: 700; color: var(--gold-ink); }
+  .card p { margin-top: 3mm; font-size: 11pt; line-height: 1.55; color: var(--ink-2); }
+  .card dl { margin-top: auto; padding-top: 4mm; }
+  .card dl div { display: grid; grid-template-columns: 14mm 1fr; gap: 2mm; border-top: 1px dashed var(--slate-300); padding: 2.4mm 0 0; margin-top: 2.4mm; }
+  .card dt { font-family: var(--mono); font-size: 8pt; font-weight: 700; color: var(--label); padding-top: 1.5px; letter-spacing: .04em; }
+  .card dd { font-size: 11pt; font-weight: 700; line-height: 1.45; color: var(--navy-800); }
+  .fmt-card .cards { grid-template-columns: 1fr; gap: 3mm; margin-top: 4mm; }
+  .fmt-card .card { padding: 4mm 4.5mm; }
+  .fmt-card .card h3 { font-size: 13.5pt; margin-top: 1.5mm; }
+  .fmt-card .card p, .fmt-card .card dd { font-size: 10pt; }
+  .fmt-card .card p { margin-top: 2mm; }
+  .fmt-card .card dl { padding-top: 2mm; }
+
+  /* 요점(번호 붙은 정리) */
+  .tips { margin-top: 3mm; }
+  .tip { display: grid; grid-template-columns: 34mm 1fr; padding: 6.5mm 0; border-bottom: 1px solid var(--slate-300); align-items: start; }
+  .tip h3 { font-size: 16pt; font-weight: 900; letter-spacing: -.02em; }
+  .tip p { margin-top: 2mm; font-size: 11.5pt; line-height: 1.6; color: var(--ink-2); }
+  .fmt-card .tip { grid-template-columns: 17mm 1fr; padding: 4mm 0; }
+  .fmt-card .tip h3 { font-size: 13pt; }
+  .fmt-card .tip p { font-size: 10pt; margin-top: 1.5mm; }
+
+  /* 표 */
+  .tbl thead th { font-family: var(--mono); font-size: 8.5pt; font-weight: 700; color: var(--label); letter-spacing: .03em; border-bottom: 2px solid var(--navy-800); }
+  .tbl tbody td { border-bottom: 1px solid var(--slate-200); color: var(--ink-2); }
+  .tbl tbody tr:nth-child(odd) td { background: #fff; }
+  .tbl tbody td:first-child { font-weight: 700; color: var(--navy-800); }
+
+  /* 코드·프롬프트(복사해 쓰는 본문) */
+  .codebox { margin-top: 5mm; }
+  .codebox .cap { display: flex; justify-content: space-between; gap: 4mm; font-family: var(--mono); font-size: 8pt; font-weight: 600; color: var(--muted); padding-bottom: 1.6mm; }
+  .code { background: #fff; border: 1px solid var(--slate-200); border-left: 6px solid var(--navy-800); padding: 5mm 6mm 5mm 6.5mm;
+    font-family: var(--code); font-size: 11pt; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; word-spacing: -0.15em; color: var(--navy-800); }
+  .code .ln { display: block; }
+  .code .gap { line-height: .7; }
+  .code .ph { font-weight: 700; }
+  .code .ic { background: var(--slate-100); padding: 0 2px; }
+  .code .blank { background: var(--gold); color: var(--navy-800); border-radius: 0; padding: 0 1px; }
+  .code .omit { font-family: var(--sans); font-size: 8.5pt; line-height: 1.9; word-spacing: normal; color: var(--label); }
+  .fmt-card .code { font-size: 9.5pt; padding: 3.5mm 4mm 3.5mm 4.5mm; border-left-width: 4px; }
+  .fmt-card .code .omit { font-size: 7.5pt; }
+  .mk { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; background: var(--navy-800); color: var(--gold); vertical-align: -2px; margin-left: 5px; }
+  .mk svg { display: block; }
+  .notes { margin-top: 5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm 7mm; }
+  .note { display: grid; grid-template-columns: 15px 1fr; gap: 8px; }
+  .note .mk { margin: 1px 0 0; }
+  .note h4 { font-size: 11.5pt; font-weight: 800; }
+  .note p { margin-top: .8mm; font-size: 11pt; line-height: 1.5; color: var(--muted); }
+  .fmt-card .notes { grid-template-columns: 1fr; gap: 2.5mm; margin-top: 4mm; }
+  .fmt-card .note h4 { font-size: 10.5pt; }
+  .fmt-card .note p { font-size: 10pt; }
+
+  /* 마무리 */
+  .end { position: absolute; left: var(--mx); bottom: 15mm; color: var(--ivory); max-width: 105mm; }
+  .end p { font-family: var(--mono); font-size: 8pt; color: var(--gold); }
+  .end h3 { margin-top: 3mm; font-size: 19pt; font-weight: 900; letter-spacing: -.02em; line-height: 1.3; text-wrap: balance; }
+  .end span { display: block; margin-top: 3mm; font-family: var(--mono); font-size: 9.5pt; color: var(--slate-300); }
+  .end-no { position: absolute; right: var(--mx); bottom: var(--foot-bottom); font-family: var(--mono); font-size: 8pt; color: var(--slate-400); }
+  .fmt-card .end { bottom: 8mm; max-width: 62mm; }
+  .fmt-card .end h3 { font-size: 14pt; margin-top: 2mm; }
+  .fmt-card .end span { font-size: 8pt; margin-top: 2mm; }
+</style>
+</head>
+<body>
+<script src="pixel.js"></script>
+<script src="kit.js"></script>
+<script>
+(function () {
+  const { esc, el } = KIT;
+  const NAVY = '#162033';
+
+  function meter(frac, px) {
+    const n = 6, rects = [];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+      rects.push({ x: x * px + 0.5, y: y * px + 0.5, s: px - 1, fill: PX.bayer(x, y) < frac ? NAVY : '#E2E8F0' });
+    if (frac >= 1) rects.push({ x: (n - 1) * px + 0.5, y: 0.5, s: px - 1, fill: '#FFB52E' });
+    return PX.svg(n * px, n * px, rects);
+  }
+  // 디더링: y0~y1 사이 밀도가 0 → 1, 아래는 네이비 면. 페이지 폭을 나누어떨어지는 칸으로(가장자리 반쪽 칸 방지)
+  function field(F, y0, y1, approx, seed) {
+    const r = PX.rng(seed), rects = [], PW = Math.floor(F.W), cols = Math.round(PW / approx), cell = PW / cols;
+    const shades = [NAVY, NAVY, NAVY, '#2B3A56', '#64748B'];
+    const solidRow = Math.ceil(y1 / cell), solidY = solidRow * cell;
+    rects.push({ x: 0, y: solidY, w: F.W, h: F.H - solidY, fill: NAVY });
+    for (let gy = 0; gy < solidRow; gy++) for (let gx = 0; gx < cols; gx++) {
+      const t = (gy * cell - y0) / (y1 - y0);
+      if (t <= 0) continue;
+      const d = Math.min(1, Math.pow(t, 1.25));
+      if (d >= 1 || PX.bayer(gx, gy) + (r() - 0.5) * 0.18 < d)
+        rects.push({ x: gx * cell + 0.5, y: gy * cell + 0.5, s: cell - 1, fill: d >= 1 ? NAVY : shades[Math.floor(r() * (d > 0.6 ? 3 : 5))] });
+    }
+    return rects;
+  }
+  function logo(F, cell, right, bottom) {
+    const g = PX.logoGrid(22);
+    const ox = Math.round((F.W - g.cols * cell - right) / cell) * cell, oy = Math.round((F.H - g.rows * cell - bottom) / cell) * cell;
+    return g.cells.map((c) => ({ x: ox + c.x * cell + 0.5, y: oy + c.y * cell + 0.5, s: cell - 1, fill: c.k === 'gold' ? '#FFB52E' : '#F6F1E7' }));
+  }
+  const pixQuote = () => PX.svg(22, 16, [{ x: 0, y: 0, s: 8, fill: NAVY }, { x: 12, y: 0, s: 8, fill: NAVY }, { x: 4, y: 8, s: 4, fill: NAVY }, { x: 16, y: 8, s: 4, fill: NAVY }]);
+  const pixBolt = () => PX.svg(12, 12, [{ x: 0, y: 0, s: 5, fill: '#FFB52E' }, { x: 6, y: 0, s: 5, fill: '#FFB52E' }, { x: 0, y: 6, s: 5, fill: '#FFB52E' }, { x: 6, y: 6, s: 5, fill: '#2B3A56' }]);
+  const paras = (t) => String(t || '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+
+  function render(D, B, F) {
+    const M = D.meta || {};
+    const card = F.name === 'card';
+    const label = [M.kicker, M.issue].filter(Boolean).join(' ');
+    const head = (right) => `<div class="head"><div class="brand"><span>${PX.logoTile(card ? 15 : 18)}</span>${esc(B.name)}</div><div>${esc(right)}</div></div>`;
+    const foot = () => `<div class="foot"><span>${esc(B.handle || '')}</span><span class="pno"></span></div>`;
+    const page = (cls, html) => { const p = el('section', 'page ' + (cls || ''), html); document.body.appendChild(p); return p; };
+
+    // 표지
+    const cov = card ? { f: [0.58, 0.8, 7, 3], l: [6.5, 26, 26] } : { f: [0.46, 0.716, 12, 3], l: [12.015, 60, 52] };
+    page('cover', `<div class="grid-bg"></div>
+      <div class="art">${PX.svg(F.W, F.H, [...field(F, F.H * cov.f[0], F.H * cov.f[1], cov.f[2], cov.f[3]), ...logo(F, ...cov.l)])}</div>
+      ${head(M.date || '')}
+      <div class="issue-no">${/^\d+$/.test(M.issue || '') ? PX.digits(M.issue, card ? 6 : 11, NAVY, card ? 1.2 : 2) : ''}</div>
+      <div class="title-block">
+        ${M.kicker || M.issue ? `<div class="eyebrow">${M.kicker ? `<b>${esc(M.kicker)}</b>` : ''}${M.issue ? `<span>No.${esc(M.issue)}</span>` : ''}</div>` : ''}
+        <h1>${(M.title || []).map((t) => `<span>${esc(t)}</span>`).join('')}</h1>
+        ${M.subtitle ? `<p class="sub">${esc(M.subtitle)}</p>` : ''}
+        <dl class="meta">${(M.facts || []).slice(0, 3).map(([k, v]) => `<div><dt>${esc(String(k).toUpperCase())}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      </div>
+      <div class="bottom"><b>${esc(B.name)}</b><span>${esc(B.tagline)}</span></div>`);
+
+    const T = {
+      page: (cls) => page(cls, `<div class="grid-bg"></div>${head(label)}<div class="inner"></div>${foot()}`),
+      heading: (s, cont) => `<div class="sec"><h2>${esc(s.title)}${cont ? '<small>(계속)</small>' : ''}</h2>${s.tag ? `<div class="tag">${esc(s.tag)}</div>` : ''}</div>`,
+      parts: (b) => {
+        switch (b.type) {
+          case 'text': return paras(b.text).map((t) => ({ atom: `<p class="lead">${esc(t)}</p>` }));
+          case 'list': return [{ wrap: () => '<ul class="list"></ul>', items: b.items || [], keep: (b.items || []).length <= 8,
+            item: (t, i) => `<li>${b.ordered ? `<b>${String(i + 1).padStart(2, '0')}</b>` : '<i></i>'}<span>${esc(t)}</span></li>` }];
+          case 'callout': return [{ atom: `<div class="callout"><div>${pixBolt()}</div><div>${b.title ? `<h4>${esc(b.title)}</h4>` : ''}${paras(b.text).map((t) => `<p>${esc(t)}</p>`).join('')}</div></div>` }];
+          case 'quote': return [{ atom: `<div class="quote"><div>${pixQuote()}</div><div><p>${esc(b.text)}</p>${b.cite ? `<cite>${esc(b.cite)}</cite>` : ''}</div></div>` }];
+          case 'stats': { const grid = `<div class="stats" style="--n:${Math.min(3, (b.items || []).length) || 1}"></div>`, R = PX.cellRows(b.items || []), c = card ? 6 : 8;
+            return [{ keep: true, wrap: () => (b.unit ? `<div class="statsw">${grid}<div class="sunit">${PX.svg(c, c, [{ x: 0, y: 0, s: c, fill: NAVY }])}<span>${esc(b.unit)}</span></div></div>` : grid), target: b.unit ? '.stats' : null, items: b.items || [],
+            item: (s) => `<div class="stat"><div class="v"><b>${esc(s.value)}</b>${typeof s.ratio === 'number' ? meter(Math.max(0, Math.min(1, s.ratio)), card ? 4 : 6) : ''}</div>${Number.isInteger(s.cells) ? `<div class="cells">${PX.cells(s.cells, R, c, card ? 2 : 3, NAVY, '#E2E8F0')}</div>` : ''}${s.label ? `<span>${esc(s.label)}</span>` : ''}${s.note ? `<small>${esc(s.note)}</small>` : ''}</div>` }]; }
+          case 'steps': { const n = (b.items || []).length; return [{ wrap: () => '<div class="cards"></div>', items: b.items || [],
+            item: (s, i) => `<div class="card"><div class="row"><span class="no">STEP ${esc(s.no || String(i + 1).padStart(2, '0'))}</span>${meter((i + 1) / n, card ? 5 : 7)}</div>
+              <h3>${esc(s.title)}</h3>${s.sub ? `<div class="ses">${esc(s.sub)}</div>` : ''}${s.text ? `<p>${esc(s.text)}</p>` : ''}
+              ${(s.rows || []).length ? `<dl>${s.rows.map(([k, v]) => `<div><dt>${esc(String(k).toUpperCase())}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}</div>` }]; }
+          case 'points': return [{ wrap: () => '<div class="tips"></div>', items: b.items || [],
+            item: (t, i) => `<div class="tip"><div>${PX.digits(String(i + 1).padStart(2, '0'), card ? 4.2 : 6.5, NAVY)}</div><div><h3>${esc(t.title)}</h3>${t.text ? `<p>${esc(t.text)}</p>` : ''}</div></div>` }];
+          case 'table': return [{ keep: (b.rows || []).length <= 8, wrap: () => `<table class="tbl"><thead><tr>${(b.head || []).map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody></tbody></table>`, target: 'tbody',
+            items: b.rows || [], item: (r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>` }];
+          case 'code': {
+            const lab = b.excerpt === false ? '원문 전체' : '원문 발췌', lines = PX.promptLines(b.body || '');
+            const parts = [{ wrap: (cont) => `<div class="codebox"><div class="cap"><span>${esc(b.file || '')}${cont ? ' (이어서)' : ''}</span><span>${lab}</span></div><div class="code"></div></div>`,
+              target: '.code', items: lines, keep: lines.length <= 16, item: (h) => h, sticky: (n) => !!n.querySelector('.ph') }];
+            if ((b.notes || []).length) parts.push({ keep: true, wrap: () => '<div class="notes"></div>', items: b.notes,
+              item: (n) => `<div class="note">${PX.badge(n.mark)}<div><h4>${esc(n.title)}</h4><p>${esc(n.text)}</p></div></div>` });
+            return parts;
+          }
+          default: throw new Error('알 수 없는 블록: ' + b.type);
+        }
+      },
+      // 마무리: 마지막 장에 디더 면 자리가 남으면 그 장을, 아니면 새 장을 쓴다
+      closing: (last) => {
+        const p = last || page('closing', `<div class="grid-bg"></div>${head(label)}`);
+        p.querySelector('.foot')?.remove();
+        const c = card ? { f: [0.55, 0.72, 7, 8], l: [5.2, 22, 44] } : { f: [0.52, 0.712, 12, 8], l: [10, 60, 60] };
+        p.querySelector('.grid-bg').insertAdjacentHTML('afterend', `<div class="art">${PX.svg(F.W, F.H, [...field(F, F.H * c.f[0], F.H * c.f[1], c.f[2], c.f[3]), ...logo(F, ...c.l)])}</div>`);
+        p.insertAdjacentHTML('beforeend', `<div class="end"><p>${esc(M.ctaLabel || 'SAVE THIS ▸')}</p>${M.cta ? `<h3>${esc(M.cta)}</h3>` : ''}<span>${esc(B.handle || '')}</span></div><div class="end-no pno"></div>`);
+      },
+    };
+
+    const warns = KIT.layout(D, T, F);
+    KIT.number('.pno');
+    KIT.check(warns);
+  }
+
+  KIT.run(['900 20px Pretendard', '800 20px Pretendard', '700 20px Pretendard', '400 20px Pretendard', '500 20px Pretendard', '600 20px Pretendard', '400 14px "JetBrains Mono"', '600 14px "JetBrains Mono"', '700 14px "JetBrains Mono"', '400 14px "DejaVu Sans Mono"', '700 14px "DejaVu Sans Mono"'], render);
+})();
+</script>
+</body>
+</html>

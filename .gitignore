@@ -1,3 +1,7 @@
 __pycache__/
 .DS_Store
 skills/*/target-root.txt
+skills/insight-design-theme/assets/fonts/web/
+skills/insight-design-theme/assets/fonts/desktop/
+skills/insight-design-theme/assets/ppt/node_modules/
+skills/*-workspace/

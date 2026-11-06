@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Terminal</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Terminal(C): 전 페이지 다크 네이비. 한글 픽셀 글꼴 제목 + 줄 단위로 조립되는 로고 */
+  :root { --closing-bottom: 98mm; }
+  .fmt-card { --closing-bottom: 52mm; }
+  .page { background: var(--navy-800); color: var(--ivory); }
+  .art { position: absolute; inset: 0; pointer-events: none; }
+  .status { position: absolute; top: var(--head-top); left: var(--mx); right: var(--mx); display: flex; justify-content: space-between; font-family: var(--mono); font-size: 8pt; color: var(--slate-400); }
+  .status b { color: var(--gold); font-weight: 600; }
+  .foot { color: var(--slate-400); }
+  .fmt-card .status { font-size: 7pt; }
+
+  /* 표지 */
+  .cover .title-block { position: absolute; left: var(--mx); right: var(--mx); top: 168mm; }
+  .cover .prompt-line { font-family: var(--mono); font-size: 9pt; color: var(--slate-400); }
+  .cover .prompt-line b { color: var(--gold); }
+  .cover .prompt-line .cur { display: inline-block; width: 8px; height: 13px; background: var(--gold); vertical-align: -2px; margin-left: 4px; }
+  .cover h1 { margin-top: 6mm; font-family: var(--pixel-ko); font-weight: 400; font-size: 34pt; line-height: 1.3; }
+  .cover h1 span { display: block; }
+  .cover h1 span:last-child:not(:first-child) { color: var(--gold); }
+  .cover .sub { margin-top: 5mm; font-size: 12pt; line-height: 1.5; color: var(--slate-300); }
+  .kv { margin-top: 8mm; font-family: var(--mono); font-size: 9pt; line-height: 1.9; display: grid; grid-template-columns: 18mm 1fr; color: var(--ivory); }
+  .kv dt { color: var(--slate-400); }
+  .cover .bottom { position: absolute; left: var(--mx); right: var(--mx); bottom: 12mm; display: flex; justify-content: space-between; align-items: flex-end; font-size: 9pt; color: var(--slate-300); }
+  .cover .bottom b { font-family: var(--pixel); font-size: 9pt; letter-spacing: .12em; color: var(--ivory); display: block; margin-bottom: 1.5mm; font-weight: 400; }
+  .cover .bottom .h { font-family: var(--mono); }
+  .fmt-card .cover .title-block { top: 66mm; }
+  .fmt-card .cover .prompt-line { font-size: 7.5pt; }
+  .fmt-card .cover h1 { margin-top: 3.5mm; font-size: 22pt; }
+  .fmt-card .cover .sub { margin-top: 3mm; font-size: 10pt; }
+  .fmt-card .kv { margin-top: 4mm; font-size: 7.5pt; line-height: 1.8; grid-template-columns: 13mm 1fr; }
+  .fmt-card .cover .bottom { bottom: 9mm; font-size: 7.5pt; }
+  .fmt-card .cover .bottom b { font-size: 7.5pt; }
+
+  /* 섹션 제목 */
+  .closing .inner { bottom: var(--closing-bottom); }
+  h2 { font-family: var(--pixel-ko); font-weight: 400; font-size: 24pt; line-height: 1.3; }
+  h2 em { font-style: normal; color: var(--gold); margin-right: 10px; }
+  h2 small { font-family: var(--sans); font-size: 12pt; color: var(--slate-400); margin-left: 8px; }
+  .sec .tag { margin-top: 1mm; font-family: var(--mono); font-size: 8pt; color: var(--slate-400); }
+  .sec .tag::before { content: '// '; }
+  .fmt-card h2 { font-size: 17pt; }
+  .fmt-card h2 em { margin-right: 6px; }
+  .fmt-card h2 small { font-size: 9.5pt; }
+  .fmt-card .sec .tag { font-size: 7pt; }
+
+  /* 문단·목록·강조·인용 */
+  .lead { margin-top: 3.5mm; font-size: 11.5pt; line-height: 1.6; color: var(--slate-300); }
+  .lead + .lead { margin-top: 2mm; }
+  .list { margin-top: 4mm; list-style: none; display: flex; flex-direction: column; gap: 2.2mm; }
+  .list li { display: grid; grid-template-columns: 8mm 1fr; font-size: 11.5pt; line-height: 1.55; color: var(--ivory); }
+  .list li b { font-family: var(--mono); font-size: 10pt; font-weight: 600; color: var(--gold); padding-top: 1px; }
+  .callout { margin-top: 5mm; border: 1px solid var(--gold); background: var(--navy-900); padding: 5mm 6mm; }
+  .callout .lbl { font-family: var(--mono); font-size: 8.5pt; color: var(--gold); }
+  .callout h4 { margin-top: 1.5mm; font-family: var(--pixel-ko); font-weight: 400; font-size: 15pt; line-height: 1.35; }
+  .callout p { margin-top: 1.5mm; font-size: 11pt; line-height: 1.6; color: var(--slate-300); }
+  .quote { margin-top: 6mm; border-left: 3px solid var(--gold); padding: 1mm 0 1mm 6mm; }
+  .quote p { font-family: var(--pixel-ko); font-weight: 400; font-size: 15pt; line-height: 1.5; color: var(--ivory); }
+  .quote cite { display: block; margin-top: 2mm; font-style: normal; font-family: var(--mono); font-size: 8.5pt; color: var(--slate-400); }
+  .quote cite::before { content: '— '; }
+  .fmt-card .lead, .fmt-card .list li { font-size: 10.5pt; }
+  .fmt-card .callout { padding: 4mm 4.5mm; }
+  .fmt-card .callout h4, .fmt-card .quote p { font-size: 12.5pt; }
+  .fmt-card .callout p { font-size: 10pt; }
+
+  /* 큰 숫자 */
+  .stats { margin-top: 5mm; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 4mm; }
+  .stat { background: var(--navy-700); border: 1px solid var(--navy-600); padding: 5mm 5.5mm; }
+  .stat b { display: block; font-family: var(--pixel); font-weight: 400; font-size: 28pt; line-height: 1.1; color: var(--gold); }
+  .stat .bar { margin-top: 2.5mm; }
+  .stat span { display: block; margin-top: 2.5mm; font-size: 11pt; font-weight: 700; line-height: 1.4; color: var(--ivory); }
+  .stat small { display: block; margin-top: 1mm; font-size: 10pt; line-height: 1.45; color: var(--slate-300); }
+  .statsw { margin-top: 5mm; }
+  .statsw .stats { margin-top: 0; }
+  .sunit { margin-top: 2.2mm; display: flex; align-items: center; gap: 1.6mm; font-family: var(--mono); font-size: 8.5pt; color: var(--slate-300); }
+  .fmt-card .stats { --n: 2 !important; gap: 3mm; }
+  .fmt-card .stat { padding: 3.5mm 4mm; }
+  .fmt-card .stat b { font-size: 20pt; }
+  .fmt-card .stat span { font-size: 10pt; }
+  .fmt-card .stat small { font-size: 9pt; }
+
+  /* 단계(타임라인) */
+  .timeline { margin-top: 6mm; position: relative; padding-left: 12mm; }
+  .timeline .rail { position: absolute; left: 0; top: 0; bottom: 5mm; width: 8mm; overflow: hidden; }
+  .stp { background: var(--navy-700); border: 1px solid var(--navy-600); padding: 4.5mm 6mm 5mm; margin-bottom: 4.5mm; }
+  .stp:last-child { margin-bottom: 0; }
+  .stp .hd { display: flex; justify-content: space-between; align-items: center; font-family: var(--pixel); font-size: 9.5pt; letter-spacing: .14em; color: var(--gold); }
+  .stp .ttl { margin-top: 2.5mm; display: flex; align-items: baseline; gap: 4mm; flex-wrap: wrap; }
+  .stp h3 { font-family: var(--pixel-ko); font-weight: 400; font-size: 17pt; }
+  .stp .ses { font-size: 10.5pt; font-weight: 600; color: var(--slate-300); }
+  .stp p { margin-top: 2mm; font-size: 11pt; line-height: 1.55; color: var(--slate-300); }
+  .stp .ln2 { margin-top: 2.4mm; display: grid; grid-template-columns: 16mm 1fr; font-size: 11pt; line-height: 1.5; }
+  .stp .ln2 + .ln2 { margin-top: 1.2mm; }
+  .stp .ln2 b { font-family: var(--mono); font-size: 9.5pt; font-weight: 600; color: var(--gold); padding-top: 1px; }
+  .stp .ln2 span { color: var(--ivory); }
+  .fmt-card .timeline { margin-top: 4mm; padding-left: 0; }
+  .fmt-card .timeline .rail { display: none; }
+  .fmt-card .stp { padding: 3.5mm 4.5mm; margin-bottom: 3mm; }
+  .fmt-card .stp .hd { font-size: 7.5pt; }
+  .fmt-card .stp h3 { font-size: 13.5pt; }
+  .fmt-card .stp p, .fmt-card .stp .ln2 { font-size: 10pt; }
+  .fmt-card .stp .ln2 { grid-template-columns: 13mm 1fr; }
+  .fmt-card .stp .ln2 b { font-size: 8pt; }
+
+  /* 요점 */
+  .tips { margin-top: 6mm; display: flex; flex-direction: column; gap: 4.5mm; }
+  .tip { display: grid; grid-template-columns: 16mm 1fr; background: var(--navy-700); border: 1px solid var(--navy-600); padding: 6.5mm 7mm; }
+  .tip .n { font-family: var(--pixel); font-size: 12pt; color: var(--gold); }
+  .tip h3 { font-family: var(--pixel-ko); font-weight: 400; font-size: 18pt; }
+  .tip p { margin-top: 3mm; font-size: 11.5pt; line-height: 1.6; color: var(--slate-300); }
+  .fmt-card .tips { margin-top: 4mm; gap: 3mm; }
+  .fmt-card .tip { grid-template-columns: 10mm 1fr; padding: 4mm 4.5mm; }
+  .fmt-card .tip .n { font-size: 9pt; }
+  .fmt-card .tip h3 { font-size: 13.5pt; }
+  .fmt-card .tip p { font-size: 10pt; margin-top: 2mm; }
+
+  /* 표 */
+  .tbl { border: 1px solid var(--navy-600); }
+  .tbl thead th { background: var(--navy-950); font-family: var(--mono); font-size: 8.5pt; font-weight: 600; color: var(--gold); border-bottom: 1px solid var(--navy-600); }
+  .tbl tbody td { border-bottom: 1px solid var(--navy-600); color: var(--slate-300); }
+  .tbl tbody tr:nth-child(even) td { background: var(--navy-700); }
+  .tbl tbody td:first-child { color: var(--ivory); font-weight: 600; }
+
+  /* 코드·프롬프트(터미널 창) */
+  .term { margin-top: 5mm; border: 1px solid var(--navy-600); background: var(--navy-950); }
+  .term .bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--navy-600); font-family: var(--mono); font-size: 8pt; color: var(--slate-400); }
+  .term .bar i { width: 8px; height: 8px; background: var(--navy-600); }
+  .term .bar i:nth-child(1) { background: var(--gold); }
+  .term .bar span { margin-left: auto; }
+  .code { padding: 5mm 6mm 5.5mm; font-family: var(--code); font-size: 11pt; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; word-spacing: -0.15em; color: #d3dae5; }
+  .code .ln { display: block; }
+  .code .gap { line-height: .7; }
+  .code .ph { color: var(--gold); font-weight: 700; }
+  .code .ic { background: var(--navy-800); color: var(--ivory); padding: 0 2px; }
+  .code .blank { background: var(--navy-700); color: var(--ivory); outline: 1px solid var(--gold); outline-offset: 0; border-radius: 0; padding: 0 1px; }
+  .code .omit { font-family: var(--sans); font-size: 8.5pt; line-height: 1.9; word-spacing: normal; color: var(--slate-400); }
+  .fmt-card .term .bar { padding: 5px 8px; font-size: 7pt; }
+  .fmt-card .code { padding: 3.5mm 4mm 4mm; font-size: 9.5pt; }
+  .fmt-card .code .omit { font-size: 7.5pt; }
+  .mk { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; background: var(--gold); color: var(--navy-900); vertical-align: -2px; margin-left: 5px; }
+  .mk svg { display: block; }
+  .notes { margin-top: 5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm 7mm; }
+  .note h4 { display: flex; align-items: center; gap: 7px; font-size: 11.5pt; font-weight: 700; color: var(--ivory); }
+  .note h4 .mk { margin: 0; }
+  .note p { margin-top: 1.2mm; font-size: 11pt; line-height: 1.5; color: var(--slate-300); }
+  .fmt-card .notes { grid-template-columns: 1fr; gap: 2.5mm; margin-top: 4mm; }
+  .fmt-card .note h4 { font-size: 10.5pt; }
+  .fmt-card .note p { font-size: 10pt; }
+
+  /* 마무리 */
+  .cta { position: absolute; left: var(--mx); right: var(--mx); bottom: 24mm; border: 1px solid var(--navy-600); background: var(--navy-700); padding: 8mm; display: flex; justify-content: space-between; align-items: center; gap: 8mm; }
+  .cta p { font-family: var(--mono); font-size: 9pt; color: var(--slate-400); }
+  .cta h3 { margin-top: 3mm; font-family: var(--pixel-ko); font-weight: 400; font-size: 18pt; line-height: 1.35; text-wrap: balance; }
+  .cta .h { margin-top: 4mm; font-family: var(--mono); font-size: 10pt; color: var(--gold); }
+  .fmt-card .cta { bottom: 13mm; padding: 5mm; gap: 4mm; }
+  .fmt-card .cta p { font-size: 7.5pt; }
+  .fmt-card .cta h3 { font-size: 13pt; margin-top: 2mm; }
+  .fmt-card .cta .h { font-size: 8pt; margin-top: 2.5mm; }
+</style>
+</head>
+<body>
+<script src="pixel.js"></script>
+<script src="kit.js"></script>
+<script>
+(function () {
+  const { esc, el } = KIT;
+
+  // 줄 단위 조립 로고: amount 비율의 줄이 왼쪽에서 밀려 들어오는 중(0이면 완성)
+  function scanLogo(cols, cell, seed, amount) {
+    const r = PX.rng(seed), g = PX.logoGrid(cols), rows = {};
+    g.cells.forEach((c) => (rows[c.y] = rows[c.y] || []).push(c));
+    const rects = [];
+    for (const y in rows) {
+      const row = rows[y], incoming = r() < amount;
+      const cut = Math.floor(row.length * (0.25 + r() * 0.5));
+      const shift = Math.round((60 + r() * 220) / cell) * cell;
+      row.sort((a, b) => a.x - b.x).forEach((c, i) => {
+        const fill = c.k === 'gold' ? '#FFB52E' : '#F6F1E7', hx = c.x * cell, hy = c.y * cell;
+        if (!incoming || i >= cut) { rects.push({ x: hx + 0.6, y: hy + 0.6, s: cell - 1.2, fill }); return; }
+        const k = (cut - i) / cut, x = hx - shift * (0.5 + k), s = cell * (0.85 - k * 0.35);
+        rects.push({ x: x + 2, y: hy + cell / 2 - 0.6, w: hx - x, h: 1.2, fill: '#94A3B8', op: 0.16 });
+        rects.push({ x: x + (cell - s) / 2, y: hy + (cell - s) / 2, s, fill: k > 0.6 ? '#64748B' : fill, op: 1 - k * 0.3 });
+      });
+    }
+    return { rects, w: g.cols * cell, h: g.rows * cell };
+  }
+  function band(F, y0, h, cell, seed) {
+    const r = PX.rng(seed), rects = [];
+    for (let y = 0; y < h; y += cell) for (let x = 0; x < F.W; x += cell)
+      if (PX.bayer(x / cell, y / cell) < (y / h) * 0.9 + (r() - 0.5) * 0.08) rects.push({ x, y: y0 + y, s: cell, fill: '#0F1828' });
+    return rects;
+  }
+  const progress = (k, n, c) => PX.svg(n * (c + 3), c, Array.from({ length: n }, (_, i) => ({ x: i * (c + 3), y: 0, s: c, fill: i < k ? '#FFB52E' : '#2B3A56' })));
+  const rail = () => PX.svg(30, 1200, Array.from({ length: 150 }, (_, i) => ({ x: 13, y: 4 + i * 8, s: 3, fill: '#2B3A56' })));
+  const paras = (t) => String(t || '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+
+  function render(D, B, F) {
+    const M = D.meta || {};
+    const card = F.name === 'card';
+    const path = `~/${KIT.slug(M.kicker) || 'notes'}${M.issue ? '/' + esc(M.issue) : ''}`;
+    const status = (right) => `<div class="status"><span><b>${esc(B.slug || KIT.slug(B.name))}</b> ${path}</span><span>${right}</span></div>`;
+    const foot = () => `<div class="foot"><span>${esc(B.handle || '')}</span><span class="pno"></span></div>`;
+    const bandArt = () => `<div class="art">${PX.svg(F.W, F.H, band(F, F.H - (card ? 34 : 60), card ? 34 : 60, card ? 3 : 5, 6))}</div>`;
+    const page = (cls, html) => { const p = el('section', 'page ' + (cls || ''), html); document.body.appendChild(p); return p; };
+    const titles = M.title || [];
+
+    // 표지
+    const L = card ? scanLogo(30, 7, 11, 0.38) : scanLogo(34, 13, 11, 0.38);
+    const ox = Math.round((F.W - L.w) / 2) + (card ? 24 : 40), oy = card ? 64 : 120;
+    const cmd = M.command || `open ${KIT.slug(M.kicker) || 'notes'}${M.issue ? '-' + M.issue : ''}`;
+    page('cover', `<div class="art">${PX.svg(F.W, F.H, [...band(F, F.H - (card ? 54 : 96), card ? 54 : 96, card ? 4 : 6, 4), ...L.rects.map((q) => ({ ...q, x: q.x + ox, y: q.y + oy }))])}</div>
+      ${status(esc(M.date || ''))}
+      <div class="title-block">
+        <div class="prompt-line"><b>$</b> ${esc(cmd)}<span class="cur"></span></div>
+        <h1>${titles.map((t) => `<span>${esc(t)}</span>`).join('')}</h1>
+        ${M.subtitle ? `<p class="sub">${esc(M.subtitle)}</p>` : ''}
+        <dl class="kv">${(M.facts || []).slice(0, 3).map(([k, v]) => `<dt>${esc(String(k).toLowerCase())}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+      </div>
+      <div class="bottom"><div><b>${esc((B.name || '').toUpperCase())}</b><span>${esc(B.tagline)}</span></div><span class="h">${esc(B.handle || '')}</span></div>`);
+
+    const T = {
+      page: (cls) => page(cls, `${bandArt()}${status('<span class="pno"></span>')}<div class="inner"></div>${foot()}`),
+      heading: (s, cont) => `<div class="sec"><h2><em>$</em>${esc(s.title)}${cont ? '<small>(계속)</small>' : ''}</h2>${s.tag ? `<div class="tag">${esc(s.tag)}</div>` : ''}</div>`,
+      parts: (b) => {
+        switch (b.type) {
+          case 'text': return paras(b.text).map((t) => ({ atom: `<p class="lead">${esc(t)}</p>` }));
+          case 'list': return [{ wrap: () => '<ul class="list"></ul>', items: b.items || [], keep: (b.items || []).length <= 8,
+            item: (t, i) => `<li><b>${b.ordered ? String(i + 1).padStart(2, '0') : '>'}</b><span>${esc(t)}</span></li>` }];
+          case 'callout': return [{ atom: `<div class="callout"><div class="lbl">// ${esc(b.label || 'NOTE')}</div>${b.title ? `<h4>${esc(b.title)}</h4>` : ''}${paras(b.text).map((t) => `<p>${esc(t)}</p>`).join('')}</div>` }];
+          case 'quote': return [{ atom: `<div class="quote"><p>${esc(b.text)}</p>${b.cite ? `<cite>${esc(b.cite)}</cite>` : ''}</div>` }];
+          case 'stats': { const grid = `<div class="stats" style="--n:${Math.min(3, (b.items || []).length) || 1}"></div>`, R = PX.cellRows(b.items || []), c = card ? 6 : 8;
+            return [{ keep: true, wrap: () => (b.unit ? `<div class="statsw">${grid}<div class="sunit">${PX.svg(c, c, [{ x: 0, y: 0, s: c, fill: '#FFB52E' }])}<span>${esc(b.unit)}</span></div></div>` : grid), target: b.unit ? '.stats' : null, items: b.items || [],
+            item: (s) => { const r = typeof s.ratio === 'number' ? Math.max(0, Math.min(1, s.ratio)) : null;
+              return `<div class="stat"><b>${esc(s.value)}</b>${r != null ? `<div class="bar">${progress(Math.round(r * 10), 10, card ? 5 : 7)}</div>` : ''}${Number.isInteger(s.cells) ? `<div class="bar">${PX.cells(s.cells, R, c, card ? 2 : 3, '#FFB52E', '#2B3A56')}</div>` : ''}${s.label ? `<span>${esc(s.label)}</span>` : ''}${s.note ? `<small>${esc(s.note)}</small>` : ''}</div>`; } }]; }
+          case 'steps': { const n = (b.items || []).length; return [{ wrap: () => `<div class="timeline"><div class="rail">${rail()}</div><div class="list"></div></div>`, target: '.list', items: b.items || [],
+            item: (s, i) => `<div class="stp"><div class="hd"><span>STEP ${esc(s.no || String(i + 1).padStart(2, '0'))}</span>${progress(i + 1, n, card ? 5 : 7)}</div>
+              <div class="ttl"><h3>${esc(s.title)}</h3>${s.sub ? `<span class="ses">${esc(s.sub)}</span>` : ''}</div>${s.text ? `<p>${esc(s.text)}</p>` : ''}
+              ${(s.rows || []).map(([k, v]) => `<div class="ln2"><b>${esc(String(k).toLowerCase())}</b><span>${esc(v)}</span></div>`).join('')}</div>` }]; }
+          case 'points': return [{ wrap: () => '<div class="tips"></div>', items: b.items || [],
+            item: (t, i) => `<div class="tip"><div class="n">[${i + 1}]</div><div><h3>${esc(t.title)}</h3>${t.text ? `<p>${esc(t.text)}</p>` : ''}</div></div>` }];
+          case 'table': return [{ keep: (b.rows || []).length <= 8, wrap: () => `<table class="tbl"><thead><tr>${(b.head || []).map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody></tbody></table>`, target: 'tbody',
+            items: b.rows || [], item: (r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>` }];
+          case 'code': {
+            const lab = b.excerpt === false ? '원문 전체' : '원문 발췌', lines = PX.promptLines(b.body || '');
+            const parts = [{ wrap: (cont) => `<div class="term"><div class="bar"><i></i><i></i><i></i><span>${b.file ? esc(b.file) + ' · ' : ''}${lab}${cont ? ' (이어서)' : ''}</span></div><div class="code"></div></div>`,
+              target: '.code', items: lines, keep: lines.length <= 16, item: (h) => h, sticky: (n) => !!n.querySelector('.ph') }];
+            if ((b.notes || []).length) parts.push({ keep: true, wrap: () => '<div class="notes"></div>', items: b.notes,
+              item: (n) => `<div class="note"><h4>${PX.badge(n.mark)}${esc(n.title)}</h4><p>${esc(n.text)}</p></div>` });
+            return parts;
+          }
+          default: throw new Error('알 수 없는 블록: ' + b.type);
+        }
+      },
+      // 마무리: 마지막 장에 저장 안내 상자 자리가 남으면 그 장에, 아니면 새 장에
+      closing: (last) => {
+        // 따로 만든 마무리 장: 완성된 로고를 크게 두고, 안내 상자에는 로고를 넣지 않는다
+        let p = last, small = true;
+        if (!p) {
+          p = T.page('closing'); p.querySelector('.inner').remove(); small = false;
+          const big = card ? scanLogo(26, 8, 5, 0) : scanLogo(30, 14, 5, 0);
+          const bx = Math.round((F.W - big.w) / 2), by = Math.round(F.H * (card ? 0.13 : 0.16));
+          p.insertAdjacentHTML('beforeend', `<div class="art">${PX.svg(F.W, F.H, big.rects.map((q) => ({ ...q, x: q.x + bx, y: q.y + by })))}</div>`);
+        }
+        const done = card ? scanLogo(18, 5, 3, 0) : scanLogo(22, 9, 3, 0);
+        p.insertAdjacentHTML('beforeend', `<div class="cta"><div><p>// ${esc(M.ctaLabel || 'SAVE THIS')}</p>${M.cta ? `<h3>${esc(M.cta)}</h3>` : ''}<div class="h">${esc(B.handle || '')}</div></div>${small ? `<div>${PX.svg(done.w, done.h, done.rects)}</div>` : ''}</div>`);
+      },
+    };
+
+    const warns = KIT.layout(D, T, F);
+    KIT.number('.pno');
+    KIT.check(warns);
+  }
+
+  KIT.run(['400 20px "NeoDunggeunmo Pro"', '400 20px Silkscreen', '400 20px Pretendard', '600 20px Pretendard', '700 20px Pretendard', '400 14px "JetBrains Mono"', '600 14px "JetBrains Mono"', '400 14px "DejaVu Sans Mono"', '700 14px "DejaVu Sans Mono"'], render);
+})();
+</script>
+</body>
+</html>
