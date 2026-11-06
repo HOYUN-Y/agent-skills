@@ -4,17 +4,25 @@
 명령을 사용하기 전에 이번 세션에서 읽은 공식 스킬과 맞춘다.
 `<...>`는 실제 응답 값으로 바꾸며 그대로 실행하지 않는다.
 
-## 페인 또는 탭 만들기
+## 작업자용 페인 배치하기
 
-기본은 현재 페인의 크기를 확인해 넓으면 오른쪽, 좁으면 아래로 분할한다.
+멀티 세션 작업에서는 메인 세션의 페인을 분할하지 않는다.
+준비 단계에서 확인한 메인 탭·페인 ID를 유지하고 작업자에게도 전달한다.
+기본은 현재 탭에서 메인 세션과 다른 사용 가능한 셸 페인을 재사용하는 것이다.
+다른 페인에서 명령이나 에이전트가 실행 중이면 입력을 덮어쓰지 않는다.
+작업자가 더 필요하면 작업자 쪽 페인을 확인한 뒤 그쪽에서만 분할한다.
+넓으면 오른쪽, 좁으면 아래로 나누고, 메인 세션에서 `--current`로 분할하지 않는다.
+사용할 다른 페인이 없으면 메인 페인을 나누거나 새 탭을 만들지 말고 배치 위치를
+사용자에게 확인한다. 현재 cwd와 메인 세션의 포커스를 유지하며, 공식 스킬의
+분할 기본값 대신 이 규칙을 적용한다.
 
 ```bash
-herdr pane layout --pane "$HERDR_PANE_ID"
-herdr pane split --current --direction right --cwd "$PWD" --no-focus
+herdr pane layout --pane <worker-pane-id>
+herdr pane split --pane <worker-pane-id> --direction right --cwd "$PWD" --no-focus
 ```
 
-생성 응답의 `.result.pane.pane_id`를 사용한다.
-사용자가 새 탭을 요청한 경우에는 다음을 사용한다.
+분할 응답의 `.result.pane.pane_id`를 사용한다.
+새 탭에 작업자를 모으는 것은 사용자가 요청할 때만 한다.
 
 ```bash
 herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$PWD" --label review --no-focus

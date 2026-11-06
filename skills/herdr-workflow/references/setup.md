@@ -60,6 +60,9 @@ Codex 사용자 지침은 `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`, Claude Code�
 - 페인·탭·워크스페이스를 열거나 다른 에이전트를 띄우고 제어하는 요청에서
   HERDR_ENV=1이면 Orca 등 다른 도구보다 Herdr CLI를 우선 사용한다.
   요청에 Herdr라는 말이 없어도 적용한다.
+- 멀티 세션 작업에서는 메인 세션의 페인을 분할하지 않는다. 현재 탭의 다른
+  페인을 사용하고, 추가 분할은 작업자 쪽 페인에서만 한다. 사용할 다른 페인이
+  없으면 배치 위치를 확인한다. 새 탭에 모으는 것은 사용자가 요청할 때만 한다.
 - herdr pane send-text로 넣은 입력은 herdr pane send-keys <pane> enter로 제출한다.
 <!-- herdr-workflow:end -->
 ```
