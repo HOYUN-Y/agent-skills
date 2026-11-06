@@ -6,22 +6,23 @@
 
 ## 작업자용 페인 배치하기
 
-멀티 세션 작업에서는 메인 세션의 페인을 분할하지 않는다.
+현재 탭에 페인이 하나뿐이면 메인 페인을 분할해 첫 작업자용 페인을 연다.
+작업자용 페인이 이미 있으면 메인 페인은 분할하지 않는다.
 준비 단계에서 확인한 메인 탭·페인 ID를 유지하고 작업자에게도 전달한다.
 기본은 현재 탭에서 메인 세션과 다른 사용 가능한 셸 페인을 재사용하는 것이다.
 다른 페인에서 명령이나 에이전트가 실행 중이면 입력을 덮어쓰지 않는다.
 작업자가 더 필요하면 작업자 쪽 페인을 확인한 뒤 그쪽에서만 분할한다.
-넓으면 오른쪽, 좁으면 아래로 나누고, 메인 세션에서 `--current`로 분할하지 않는다.
-사용할 다른 페인이 없으면 메인 페인을 나누거나 새 탭을 만들지 말고 배치 위치를
-사용자에게 확인한다. 현재 cwd와 메인 세션의 포커스를 유지하며, 공식 스킬의
+넓으면 오른쪽, 좁으면 아래로 나눈다. 다른 페인이 있지만 사용할 작업자용 페인이
+없으면 배치 위치를 사용자에게 확인한다. 현재 cwd와 메인 세션의 포커스를 유지하며, 공식 스킬의
 분할 기본값 대신 이 규칙을 적용한다.
 
 ```bash
-herdr pane layout --pane <worker-pane-id>
-herdr pane split --pane <worker-pane-id> --direction right --cwd "$PWD" --no-focus
+herdr pane layout --pane <split-source-pane-id>
+herdr pane split --pane <split-source-pane-id> --direction right --cwd "$PWD" --no-focus
 ```
 
-분할 응답의 `.result.pane.pane_id`를 사용한다.
+`<split-source-pane-id>`는 페인이 하나일 때 확인한 메인 페인 ID, 작업자용 페인이
+이미 있을 때는 작업자 페인 ID다. 분할 응답의 `.result.pane.pane_id`를 사용한다.
 새 탭에 작업자를 모으는 것은 사용자가 요청할 때만 한다.
 
 ```bash
