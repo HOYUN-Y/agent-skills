@@ -177,7 +177,19 @@
   //   `코드` 표시는 마크다운처럼 기호를 빼고 인라인 코드 서식으로 보여 준다(기호가 있으면 앞 글자와 줄이 갈라져 추출됨).
   //   밑줄(_)은 고정폭 글꼴 글리프에서 줄이 끊기므로 본문 글꼴 글리프로 그린다.
   //   해설 번호는 줄의 마지막 낱말과 묶어(nowrap) 번호만 다음 줄로 떨어지지 않게 한다.
+  // - 화면에서 줄바꿈된 다음 줄은 앞 공백과 목록 기호(-, *, +, 1., 1))만큼 들여 쓴다(내어쓰기).
+  //   글자는 그대로 두고 padding·text-indent로만 맞추므로 복사 텍스트는 바뀌지 않는다.
   function promptHTML(body) { return promptLines(body).join(''); }
+  // 내어쓰기 폭: 고정폭 글자 수(ch)에서, .code의 word-spacing(-0.15em)만큼 공백마다 뺀다
+  const HANG_MAX = 12;
+  function hangStyle(line) {
+    const m = line.match(/^( *)((?:[-*+]|\d{1,3}[.)]) +)?/);
+    const k = Math.min(HANG_MAX, m ? m[0].length : 0);
+    if (!k) return '';
+    const sp = (m[0].slice(0, k).match(/ /g) || []).length;
+    const w = `calc(${k}ch - ${(sp * 0.15).toFixed(2)}em)`;
+    return ` style="padding-left:${w};text-indent:calc(-1 * ${w})"`;
+  }
   function promptLines(body) {
     const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const deco = (s) => esc(s)
@@ -209,7 +221,7 @@
         l = deco(raw) + marks.map((m) => badge(m)).join('');
       }
       if (/^## /.test(line)) l = `<span class="ph">${l}</span>`;
-      return `<span class="ln">${l}</span>`;
+      return `<span class="ln"${hangStyle(raw)}>${l}</span>`;
     });
   }
 

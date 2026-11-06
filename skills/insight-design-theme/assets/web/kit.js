@@ -181,9 +181,36 @@
     document.body.appendChild(el);
   };
 
+  // 큰 숫자: 값은 한 줄로 두고, 카드 폭을 넘으면 같은 블록의 값을 함께 줄인다(최소 55%).
+  // 픽셀 글꼴(Terminal)은 숫자 폭이 넓어 7자 값도 3열 카드를 넘을 수 있다.
+  KIT.fitStats = () => document.querySelectorAll('.stats').forEach((g) => {
+    const vals = [...g.querySelectorAll('.stat b')], cards = [...g.querySelectorAll('.stat')];
+    if (!vals.length) return;
+    const base = parseFloat(getComputedStyle(vals[0]).fontSize);
+    const over = () => cards.some((c) => c.scrollWidth > c.clientWidth + 0.5);
+    for (let s = 0.95; over() && s >= 0.55; s -= 0.05) vals.forEach((v) => (v.style.fontSize = `${(base * s).toFixed(2)}px`));
+  });
+
+  // 지면 좌우로 나간 글자(가로 넘침). 세로 넘침 검사로는 잡히지 않는다.
+  KIT.sideOverflow = (inner) => {
+    const R = inner.getBoundingClientRect(), rg = document.createRange(), out = [];
+    const w = document.createTreeWalker(inner, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (!n.data.trim()) continue;
+      rg.selectNodeContents(n);
+      if ([...rg.getClientRects()].some((r) => r.width && (r.right > R.right + 1 || r.left < R.left - 1))) out.push(n.data.trim().slice(0, 20));
+    }
+    return out;
+  };
+
   // 렌더 후 검사: 넘친 페이지(잘린 글자)를 경고로 남긴다. build.sh가 출력한다.
   KIT.check = (warns) => {
-    document.querySelectorAll('.page').forEach((p, i) => p.querySelectorAll('.inner').forEach((b) => { if (KIT.overflows(b)) warns.push(`${i + 1}쪽 내용이 넘쳐 잘립니다`); }));
+    KIT.fitStats();
+    document.querySelectorAll('.page').forEach((p, i) => p.querySelectorAll('.inner').forEach((b) => {
+      if (KIT.overflows(b)) warns.push(`${i + 1}쪽 내용이 넘쳐 잘립니다`);
+      const side = KIT.sideOverflow(b);
+      if (side.length) warns.push(`${i + 1}쪽 글자가 좌우 여백 밖으로 나가 잘립니다: ${[...new Set(side)].slice(0, 3).map((t) => `"${t}"`).join(', ')}`);
+    }));
     document.body.dataset.warn = [...new Set(warns)].join(' | ');
     KIT.codeRows();
   };

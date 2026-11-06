@@ -73,6 +73,7 @@ body { font-family: var(--sans); color: var(--navy-800); background: #8a93a3; wo
 /* 표(두 스타일 공통 골격) */
 .tbl { margin-top: 5mm; width: 100%; border-collapse: collapse; font-size: 10.5pt; line-height: 1.45; }
 .tbl th, .tbl td { text-align: left; vertical-align: top; padding: 2.4mm 3mm; }
+.tbl .brk { overflow-wrap: anywhere; } /* 띄어쓰기 없이 30자 넘는 주소·경로만: 표를 지면 밖으로 밀지 않게(다른 칸 너비는 그대로) */
 .fmt-card .tbl { font-size: 9.5pt; }
 .fmt-card .tbl th, .fmt-card .tbl td { padding: 1.8mm 2mm; }
 .page:last-child { page-break-after: auto; break-after: auto; }
