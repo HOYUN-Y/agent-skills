@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: ppt-mosaic-tool-comparison
+expected_outcome: |
+  A 16:9 PowerPoint in the Mosaic style that presents the comparison of the three tools with the memo's exact figures (summary scores 4.3, 3.7, 4.0; proper-noun errors 4, 11, 7), editable text, Korean text tagged ko-KR, and no local path or email. It must not invent a price for 스크라이브K (the memo says it was not confirmed) and must not say the team adopted a tool (team adoption is undecided; only personal one-month use of 리슨노트 was decided).
+context:
+  scaffold_script: place-files.sh

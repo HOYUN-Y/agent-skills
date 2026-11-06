@@ -1,0 +1,8 @@
+{
+  "name": "insight-design-theme-ppt",
+  "private": true,
+  "description": "PPT 빌드용 의존성(pptxgenjs). 설치: npm ci --prefix <이 폴더>",
+  "dependencies": {
+    "pptxgenjs": "3.12.0"
+  }
+}

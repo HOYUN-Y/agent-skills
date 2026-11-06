@@ -1,6 +1,6 @@
 # Agent Skills
 
-Codex와 Claude Code에서 사용하는 개인 스킬 7개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
+Codex와 Claude Code에서 사용하는 개인 스킬 8개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
 
 | 스킬 | 용도 |
 |---|---|
@@ -11,6 +11,7 @@ Codex와 Claude Code에서 사용하는 개인 스킬 7개를 한곳에서 관�
 | [changelog-verify](skills/changelog-verify/SKILL.md) | 원본과 대조해 기록 누락 검증·보강 |
 | [ai-use-case-research](skills/ai-use-case-research/SKILL.md) | 브라우저로 AI 활용 사례 조사 |
 | [secondbrain-index-sync](skills/secondbrain-index-sync/SKILL.md) | 세컨드브레인 색인·주제 연결 관리 |
+| [insight-design-theme](skills/insight-design-theme/SKILL.md) | Artificial Insight 디자인 테마로 인스타 카드·PDF·PPT 제작 |
 
 ## 설치와 갱신
 
@@ -50,6 +51,7 @@ fi
 - **herdr:** [초기 설정 안내](skills/herdr-workflow/references/setup.md)를 따릅니다. 단순 링크 설치는 세션 시작 지침이나 훅을 변경하지 않습니다.
 - **motion:** 캡처 도구의 런타임 요구는 스킬 지침을 따릅니다. 포함된 엔진의 [출처](skills/motion-web-builder/engine/UPSTREAM.md)와 [라이선스](skills/motion-web-builder/engine/LICENSE)를 유지합니다.
 - **research:** 브라우저 제어 도구가 필요합니다. 플랫폼 접근과 로그인 상태에 따라 확인 범위가 달라집니다.
+- **insight-design-theme:** Google Chrome이 필요합니다. 웹 글꼴은 저장소에 넣지 않고 처음 사용할 때 `python3 -I skills/insight-design-theme/scripts/fetch_fonts.py`로 스킬 폴더 안에 받습니다(버전·검증값 고정). PPT를 만들 때만 `npm ci --prefix skills/insight-design-theme/assets/ppt`와 데스크톱 글꼴 설치가 필요하며, 스킬은 둘 다 사용자 승인 없이 설치하지 않습니다. 미리보기·복사 검사와 PowerPoint 확인은 macOS 기준입니다. 글꼴 라이선스는 `assets/fonts/licenses/`에 있습니다.
 
 ## 공통 코드 리뷰어
 
@@ -69,6 +71,11 @@ python3 -I skills/secondbrain-index-sync/scripts/check_index.py --selftest
 python3 -I skills/secondbrain-index-sync/scripts/manifest.py --selftest
 python3 -I skills/secondbrain-index-sync/scripts/doc_manifest.py --selftest
 python3 -I skills/secondbrain-index-sync/scripts/build_topics.py --selftest
+python3 -I skills/insight-design-theme/scripts/lint_content.py --selftest
+python3 -I skills/insight-design-theme/scripts/check_pdf_text.py --selftest
+python3 -I skills/insight-design-theme/scripts/fetch_fonts.py --selftest
+python3 -I skills/insight-design-theme/scripts/lint_content.py skills/insight-design-theme/assets/examples/showcase.json
+node --check skills/insight-design-theme/assets/ppt/deck.js
 ```
 
 GitHub Actions에서 세컨드브레인의 기존 운영체제별 자체 테스트와 설치 검증을 유지합니다. 모션·changelog 검사도 자동 실행합니다. 이 검사는 실제 웹 화면·영상 재생·에이전트의 반복 수행을 대신하지 않습니다.

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>PPT 픽셀 그래픽</title>
+<!-- 사용: assets.html?a=<이름>&st=mosaic&ns=3,6&pts=4&rs=7,10&cs=13-3,27-3&issue=01  배경 투명, 그래픽 하나만 그린다. build_ppt.sh가 3배 해상도 PNG로 찍는다.
+     a=list → 이 스타일(st)에 필요한 그래픽 목록(이름:폭x높이). ns = steps 블록의 단계 수들, pts = points 블록의 최대 항목 수,
+     rs = stats 블록 ratio를 10칸으로 반올림한 값들, cs = stats 블록 칸 막대의 '채운 칸-줄 수'들.
+     크기 단위는 CSS px(16:9 슬라이드 = 1280×720). -->
+<style>html, body { margin: 0; background: transparent; } svg { display: block; }</style>
+</head>
+<body>
+<div id="out"></div>
+<script src="../web/pixel.js"></script>
+<script>
+(function () {
+  const NAVY = '#162033', IVORY = '#F6F1E7', GOLD = '#FFB52E';
+  const q = new URLSearchParams(location.search);
+  const NS = [...new Set((q.get('ns') || '').split(',').map(Number).filter((n) => n > 0))];
+  const PTS = Math.max(0, +q.get('pts') || 0);
+  const RS = [...new Set((q.get('rs') || '').split(',').filter((v) => v !== '').map(Number).filter((n) => n >= 0 && n <= 10))];
+  const CS = [...new Set((q.get('cs') || '').split(',').filter((v) => /^\d+-\d+$/.test(v)))].map((v) => v.split('-').map(Number));
+  const PRE = q.get('st') === 'terminal' ? 'c-' : 'b-';
+
+  function field(W, H, y0, y1, approxCell, seed) {
+    const r = PX.rng(seed), rects = [];
+    const cols = Math.round(W / approxCell), cell = W / cols;
+    const shades = [NAVY, NAVY, NAVY, '#2B3A56', '#64748B'];
+    const solidRow = Math.ceil(y1 / cell), solidY = solidRow * cell;
+    rects.push({ x: 0, y: solidY, w: W, h: H - solidY, fill: NAVY });
+    for (let gy = 0; gy < solidRow; gy++) for (let gx = 0; gx < cols; gx++) {
+      const t = (gy * cell - y0) / (y1 - y0);
+      if (t <= 0) continue;
+      const d = Math.min(1, Math.pow(t, 1.25));
+      if (d >= 1 || PX.bayer(gx, gy) + (r() - 0.5) * 0.18 < d)
+        rects.push({ x: gx * cell + 0.5, y: gy * cell + 0.5, s: cell - 1, fill: d >= 1 ? NAVY : shades[Math.floor(r() * (d > 0.6 ? 3 : 5))] });
+    }
+    return rects;
+  }
+  function logo(cell, ox, oy) {
+    return PX.logoGrid(22).cells.map((c) => ({ x: ox + c.x * cell + 0.5, y: oy + c.y * cell + 0.5, s: cell - 1, fill: c.k === 'gold' ? GOLD : IVORY }));
+  }
+  const logoSize = (cell) => { const g = PX.logoGrid(22); return { w: g.cols * cell, h: g.rows * cell }; };
+  function meter(frac, px) {
+    const n = 6, rects = [];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+      rects.push({ x: x * px + 0.5, y: y * px + 0.5, s: px - 1, fill: PX.bayer(x, y) < frac ? NAVY : '#E2E8F0' });
+    if (frac >= 1) rects.push({ x: (n - 1) * px + 0.5, y: 0.5, s: px - 1, fill: GOLD });
+    return PX.svg(n * px, n * px, rects);
+  }
+  const bar = (k, n, c) => PX.svg(n * (c + 4) - 4, c, Array.from({ length: n }, (_, i) => ({ x: i * (c + 4), y: 0, s: c, fill: i < k ? GOLD : '#2B3A56' })));
+  function scanLogo(cols, cell, seed, amount) {
+    const r = PX.rng(seed), g = PX.logoGrid(cols), rows = {};
+    g.cells.forEach((c) => (rows[c.y] = rows[c.y] || []).push(c));
+    const rects = [];
+    for (const y in rows) {
+      const row = rows[y], incoming = r() < amount;
+      const cut = Math.floor(row.length * (0.25 + r() * 0.5));
+      const shift = Math.round((60 + r() * 220) / cell) * cell;
+      row.sort((a, b) => a.x - b.x).forEach((c, i) => {
+        const fill = c.k === 'gold' ? GOLD : IVORY, hx = c.x * cell, hy = c.y * cell;
+        if (!incoming || i >= cut) { rects.push({ x: hx + 0.6, y: hy + 0.6, s: cell - 1.2, fill }); return; }
+        const k = (cut - i) / cut, x = hx - shift * (0.5 + k), s = cell * (0.85 - k * 0.35);
+        rects.push({ x: x + 2, y: hy + cell / 2 - 0.6, w: hx - x, h: 1.2, fill: '#94A3B8', op: 0.16 });
+        rects.push({ x: x + (cell - s) / 2, y: hy + (cell - s) / 2, s, fill: k > 0.6 ? '#64748B' : fill, op: 1 - k * 0.3 });
+      });
+    }
+    return { rects, w: g.cols * cell, h: g.rows * cell };
+  }
+
+  const A = {
+    'b-dots': () => {
+      let s = '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">';
+      for (let y = 6; y < 720; y += 12) for (let x = 6; x < 1280; x += 12) s += `<circle cx="${x}" cy="${y}" r="0.85" fill="#C9D2DE"/>`;
+      return [1280, 720, s + '</svg>'];
+    },
+    'b-cover-art': () => { const L = logoSize(7); return [1280, 720, PX.svg(1280, 720, [...field(1280, 720, 384, 520, 12, 3), ...logo(7, 1280 - L.w - 72, 720 - L.h - 34)])]; },
+    'b-closing-art': () => { const L = logoSize(7); return [1280, 720, PX.svg(1280, 720, [...field(1280, 720, 384, 520, 12, 8), ...logo(7, 1280 - L.w - 72, 720 - L.h - 34)])]; },
+    'b-logo-tile': () => [64, 64, PX.logoTile(64)],
+    'b-quote': () => [44, 32, PX.svg(44, 32, [{ x: 0, y: 0, s: 16, fill: NAVY }, { x: 24, y: 0, s: 16, fill: NAVY }, { x: 8, y: 16, s: 8, fill: NAVY }, { x: 32, y: 16, s: 8, fill: NAVY }])],
+    'b-bolt': () => [24, 24, PX.svg(24, 24, [{ x: 0, y: 0, s: 10, fill: GOLD }, { x: 12, y: 0, s: 10, fill: GOLD }, { x: 0, y: 12, s: 10, fill: GOLD }, { x: 12, y: 12, s: 10, fill: '#2B3A56' }])],
+    'c-cover-logo': () => { const L = scanLogo(34, 12, 11, 0.38), W = 900, ox = W - L.w; return [W, L.h, PX.svg(W, L.h, L.rects.map((r) => ({ ...r, x: r.x + ox })))]; },
+    'c-logo-done': () => { const L = scanLogo(22, 8, 3, 0); return [L.w, L.h, PX.svg(L.w, L.h, L.rects)]; },
+    'c-band': () => {
+      const W = 1280, h = 60, cell = 5, r = PX.rng(6), rects = [];
+      for (let y = 0; y < h; y += cell) for (let x = 0; x < W; x += cell)
+        if (PX.bayer(x / cell, y / cell) < (y / h) * 0.9 + (r() - 0.5) * 0.08) rects.push({ x, y, s: cell, fill: '#0F1828' });
+      return [W, h, PX.svg(W, h, rects)];
+    },
+  };
+  // 큰 숫자(stats)의 비율 표시: 0~10칸
+  for (const k of RS) {
+    A[`b-ratio-${k}`] = () => [64, 64, meter(k / 10, 64 / 6)];
+    A[`c-ratio-${k}`] = () => { const w = 10 * 14 - 4; return [w, 10, bar(k, 10, 10)]; };
+  }
+  // 큰 숫자(stats)의 칸 막대: 한 줄 10칸, R줄 틀에 k칸 채움(칸 14px, 간격 4px)
+  for (const [k, R] of CS) {
+    const w = 10 * 18 - 4, h = R * 18 - 4;
+    A[`b-cells-${k}-${R}`] = () => [w, h, PX.cells(k, R, 14, 4, NAVY, '#E2E8F0')];
+    A[`c-cells-${k}-${R}`] = () => [w, h, PX.cells(k, R, 14, 4, GOLD, '#2B3A56')];
+  }
+  // 단계 카드: 단계 수(N)마다 k/N 미터·진행 표시
+  for (const N of NS) for (let k = 1; k <= N; k++) {
+    A[`b-meter-${k}-${N}`] = () => [42, 42, meter(k / N, 7)];
+    A[`c-prog-${k}-${N}`] = () => [N * 13 - 4, 9, PX.svg(N * 13 - 4, 9, Array.from({ length: N }, (_, i) => ({ x: i * 13, y: 0, s: 9, fill: i < k ? GOLD : '#2B3A56' })))];
+  }
+  if (/^\d+$/.test(q.get('issue') || '')) A['b-issue'] = () => { const d = PX.digitCells(q.get('issue')); return [d.cols * 10, 70, PX.digits(q.get('issue'), 10, NAVY, 2)]; };
+  for (let k = 1; k <= PTS; k++) A[`b-num-${k}`] = () => { const s = String(k).padStart(2, '0'), d = PX.digitCells(s); return [d.cols * 7, 49, PX.digits(s, 7, NAVY)]; };
+
+  const name = q.get('a');
+  if (name === 'list') { document.getElementById('out').textContent = ['ASSET', 'LIST', ''].join('@') + Object.keys(A).filter((k) => k.startsWith(PRE)).map((k) => { const [w, h] = A[k](); return `${k}:${Math.ceil(w)}x${Math.ceil(h)}`; }).join(','); return; }
+  document.getElementById('out').innerHTML = A[name]()[2];
+})();
+</script>
+</body>
+</html>

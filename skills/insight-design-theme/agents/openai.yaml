@@ -1,0 +1,4 @@
+interface:
+  display_name: "Artificial Insight 디자인 테마"
+  short_description: "자료를 브랜드 테마의 인스타 카드·PDF·PPT로 만들고 넘침·복사 품질·노출을 검사합니다."
+  default_prompt: "$insight-design-theme 이 폴더의 자료로 인스타에 올릴 카드를 만들어 주세요."

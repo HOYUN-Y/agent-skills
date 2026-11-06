@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pdf-mosaic-poster-prompts
+expected_outcome: |
+  A4 PDF in the Mosaic style that walks through the three poster prompts as steps (basic → specific → revision), quotes the prompt text verbatim with omissions marked, explains why the prompts are written that way, states only facts from the work memo (e.g. the event was not real, results counted per run), and passes a copy-text check.
+context:
+  scaffold_script: place-files.sh

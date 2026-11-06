@@ -19,3 +19,8 @@ jobs:
       - run: bash -n skills/changelog-update/scripts/cron-run.sh
       - run: bash -n skills/changelog-verify/scripts/check-detail.sh
       - run: node skills/motion-web-builder/tests/video-hero.mjs
+      - run: python3 -I skills/insight-design-theme/scripts/lint_content.py --selftest
+      - run: python3 -I skills/insight-design-theme/scripts/check_pdf_text.py --selftest
+      - run: python3 -I skills/insight-design-theme/scripts/fetch_fonts.py --selftest
+      - run: python3 -I skills/insight-design-theme/scripts/lint_content.py skills/insight-design-theme/assets/examples/showcase.json
+      - run: node --check skills/insight-design-theme/assets/ppt/deck.js

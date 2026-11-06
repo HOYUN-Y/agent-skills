@@ -1,0 +1,88 @@
+/* 글꼴은 로컬 파일로 고정한다(빌드 환경에 따라 대체 글꼴이 섞이지 않게). 라이선스: fonts/OFL-*.txt, fonts/LICENSE-DejaVu.txt */
+/* Pretendard는 정적 굵기 파일을 쓴다. 가변 글꼴은 Chrome PDF에서 Type3로 들어가 텍스트 복사 순서가 깨진다. */
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-Regular.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-Medium.woff2') format('woff2'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-Bold.woff2') format('woff2'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: block; }
+@font-face { font-family: 'Pretendard'; src: url('../fonts/web/Pretendard-Black.woff2') format('woff2'); font-weight: 900; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/web/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/web/JetBrainsMono-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../fonts/web/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 700; font-display: block; }
+/* 프롬프트 본문은 DejaVu Sans Mono의 복사 보정본(fetch_fonts.py가 만든다, 모양은 원본과 같음).
+   macOS PDFKit은 나란한 두 글자의 세로 범위가 겹치지 않으면(예: "- .env", "a.~b", 밑줄) 복사 텍스트에 줄바꿈을 넣는다.
+   보정본은 글리프 경계 상자 값만 넓혀 이를 막는다. */
+@font-face { font-family: 'DejaVu Sans Mono'; src: url('../fonts/web/DejaVuSansMono-CopySafe.ttf') format('truetype'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'DejaVu Sans Mono'; src: url('../fonts/web/DejaVuSansMono-Bold-CopySafe.ttf') format('truetype'); font-weight: 700; font-display: block; }
+@font-face { font-family: 'Silkscreen'; src: url('../fonts/web/Silkscreen-Regular.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Silkscreen'; src: url('../fonts/web/Silkscreen-Bold.woff2') format('woff2'); font-weight: 700; font-display: block; }
+/* C 제목용 한글 픽셀 글꼴: Galmuri11 Bold보다 획이 덜 뭉쳐 잘 읽힌다. 굵기는 400 하나뿐이라 font-weight 400으로 쓴다(가짜 굵게 방지) */
+@font-face { font-family: 'NeoDunggeunmo Pro'; src: url('../fonts/web/NeoDunggeunmoPro-Regular.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Galmuri11'; src: url('../fonts/web/Galmuri11.woff2') format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Galmuri11'; src: url('../fonts/web/Galmuri11-Bold.woff2') format('woff2'); font-weight: 700; font-display: block; }
+
+:root {
+  --navy-950: #0B1220;
+  --navy-900: #0F1828;
+  --navy-800: #162033; /* 로고 배경 */
+  --navy-700: #1F2B42;
+  --navy-600: #2B3A56;
+  --slate-500: #64748B; /* 픽셀 그래픽 음영. 글자 라벨은 Mosaic --label(#5B6A80, 명암비 4.5 이상) */
+  --slate-400: #94A3B8;
+  --slate-300: #CBD5E1;
+  --slate-200: #E2E8F0;
+  --slate-100: #EEF2F6;
+  --slate-50: #F6F8FB;
+  --ivory: #F6F1E7; /* 로고 A */
+  --gold: #FFB52E; /* 로고 i·눈 */
+  --sans: 'Pretendard', sans-serif;
+  /* 고정폭 글꼴에 없는 한글은 Pretendard로 */
+  --mono: 'JetBrains Mono', 'Pretendard', monospace;
+  --code: 'DejaVu Sans Mono', 'Pretendard', monospace; /* 복사해 쓰는 프롬프트 본문 */
+  --pixel: 'Silkscreen', 'Galmuri11', monospace;
+  --pixel-ko: 'NeoDunggeunmo Pro', 'Galmuri11', monospace;
+}
+
+/* 형식별 지면(@page 크기는 kit.js가 형식에 맞춰 넣는다). 위치는 모두 이 변수로 잡는다 */
+:root {
+  --pw: 210mm; --ph: 297mm;
+  --mx: 16mm;          /* 좌우 여백 */
+  --head-top: 13mm;    /* 머리줄 */
+  --inner-top: 29mm;   /* 본문 상자 위 */
+  --inner-bottom: 20mm;/* 본문 상자 아래 */
+  --foot-bottom: 10mm; /* 바닥줄 */
+}
+body.fmt-card {
+  --pw: 120mm; --ph: 150mm;
+  --mx: 9mm; --head-top: 7mm; --inner-top: 17mm; --inner-bottom: 14mm; --foot-bottom: 6mm;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: var(--sans); color: var(--navy-800); background: #8a93a3; word-break: keep-all; }
+.page {
+  width: var(--pw); height: var(--ph); position: relative; overflow: hidden;
+  page-break-after: always; break-after: page;
+}
+.inner { position: absolute; top: var(--inner-top); left: var(--mx); right: var(--mx); bottom: var(--inner-bottom); overflow: hidden; }
+.foot { position: absolute; left: var(--mx); right: var(--mx); bottom: var(--foot-bottom); display: flex; justify-content: space-between; font-family: var(--mono); font-size: 8pt; }
+.fmt-card .foot { font-size: 7pt; }
+/* 섹션이 같은 페이지에 이어질 때 간격 */
+.inner > .sec:not(:first-child) { margin-top: 11mm; }
+.fmt-card .inner > .sec:not(:first-child) { margin-top: 8mm; }
+/* 표(두 스타일 공통 골격) */
+.tbl { margin-top: 5mm; width: 100%; border-collapse: collapse; font-size: 10.5pt; line-height: 1.45; }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: 2.4mm 3mm; }
+.fmt-card .tbl { font-size: 9.5pt; }
+.fmt-card .tbl th, .fmt-card .tbl td { padding: 1.8mm 2mm; }
+.page:last-child { page-break-after: auto; break-after: auto; }
+@media screen {
+  body { display: flex; flex-direction: column; gap: 24px; align-items: center; padding: 24px 0; }
+  .page { box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+}
+svg { display: block; }
+/* 프롬프트 본문 밑줄은 본문 글꼴 글리프로(PDF 복사 시 줄 끊김 방지, pixel.js promptHTML 참고) */
+.code .us { font-family: var(--sans); }
+/* 해설 번호와 마지막 낱말을 한 줄에(번호만 다음 줄로 떨어지지 않게) */
+.code .nw { white-space: nowrap; }
+.blank { background: rgba(255,181,46,.22); color: var(--gold); border-radius: 2px; padding: 0 2px; }

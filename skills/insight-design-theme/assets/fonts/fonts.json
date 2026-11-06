@@ -1,0 +1,180 @@
+{
+  "web": [
+    {
+      "file": "Pretendard-Regular.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2",
+      "sha256": "fad853f7f47c6c8b103171e7193fa095708cdcd70850a71d93aa5379e8a61d63",
+      "bytes": 765892
+    },
+    {
+      "file": "Pretendard-Medium.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Medium.woff2",
+      "sha256": "d03481330eeba0659ab5b87f25ceb504a35de377dd90a0d0aba2982eb2d05e2c",
+      "bytes": 778432
+    },
+    {
+      "file": "Pretendard-SemiBold.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2",
+      "sha256": "c863f76a7de5c1ddc1ed8b2fa794964530774592c4f31407a84e2a2ae93f17f0",
+      "bytes": 785856
+    },
+    {
+      "file": "Pretendard-Bold.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2",
+      "sha256": "4609c3356e536fafe38f4add0daeceb3d8595d3057bce13c428c33ddbd43d362",
+      "bytes": 791156
+    },
+    {
+      "file": "Pretendard-ExtraBold.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraBold.woff2",
+      "sha256": "dd7c1e156f508eb962acc7a33a7a1896d1e0b71e11156fad96e731689ceb6dc3",
+      "bytes": 793540
+    },
+    {
+      "file": "Pretendard-Black.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Black.woff2",
+      "sha256": "c5fd0c3568fc1368a3edc0d0fbb36df029935954276e3573451b3bae09e27296",
+      "bytes": 800404
+    },
+    {
+      "file": "JetBrainsMono-Regular.woff2",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/webfonts/JetBrainsMono-Regular.woff2",
+      "sha256": "a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2",
+      "bytes": 92164
+    },
+    {
+      "file": "JetBrainsMono-SemiBold.woff2",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/webfonts/JetBrainsMono-SemiBold.woff2",
+      "sha256": "918edad542a1da608fd2ba8daebaff9ac802309103fe760eed465b8b4e47faf1",
+      "bytes": 94472
+    },
+    {
+      "file": "JetBrainsMono-Bold.woff2",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/webfonts/JetBrainsMono-Bold.woff2",
+      "sha256": "c503cc5ec5f8b2c7666b7ecda1adf44bd45f2e6579b2eba0fc292150416588a2",
+      "bytes": 94588
+    },
+    {
+      "file": "DejaVuSansMono.ttf",
+      "url": "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSansMono.ttf",
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582",
+      "bytes": 340712
+    },
+    {
+      "file": "DejaVuSansMono-Bold.ttf",
+      "url": "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSansMono-Bold.ttf",
+      "sha256": "bce60f1b4421acd9ea51ba6623d7024ecbe6817a953e3654df62a5e6bdf8f769",
+      "bytes": 331992
+    },
+    {
+      "file": "Silkscreen-Regular.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/@fontsource/silkscreen@5.3.0/files/silkscreen-latin-400-normal.woff2",
+      "sha256": "e6c72ea4702249202bcdd79d3343057e4e25ef1f04e3fcffd8602ab53b40b4cc",
+      "bytes": 8404
+    },
+    {
+      "file": "Silkscreen-Bold.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/@fontsource/silkscreen@5.3.0/files/silkscreen-latin-700-normal.woff2",
+      "sha256": "5741b7f01a127f40ed70281fa2f686e8fc2cfe241930a120e4d1a1cebe78f995",
+      "bytes": 7524
+    },
+    {
+      "file": "Galmuri11.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/Galmuri11.woff2",
+      "sha256": "f467d1b10e6b88dfa8399c9f93b38c7643e050abfe4fc15800ac0b000f5a57d6",
+      "bytes": 504736
+    },
+    {
+      "file": "Galmuri11-Bold.woff2",
+      "url": "https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/Galmuri11-Bold.woff2",
+      "sha256": "8643094f395aa2dbad6bc4385cc043314801eaec2e759d549435ec8ac4f2d078",
+      "bytes": 166632
+    },
+    {
+      "file": "NeoDunggeunmoPro-Regular.woff2",
+      "url": "https://github.com/neodgm/neodgm-pro/releases/download/v1.020/NeoDunggeunmoPro-Regular.woff2",
+      "sha256": "b6b28ef07a91a889587b3f2485ad77d3cd116456f8bfbc50a271cbe90b39535d",
+      "bytes": 38144
+    }
+  ],
+  "desktop": [
+    {
+      "file": "Pretendard-Regular.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-Regular.otf",
+      "sha256": "3ffbacde6ab8411f1d2db54bb9b1f0b3ee2a738932033722cf0388c06aed1c93",
+      "bytes": 1574352
+    },
+    {
+      "file": "Pretendard-Medium.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-Medium.otf",
+      "sha256": "d39e50e4bb52b4993b6a4eeb821a171254745bd824446af01e1f616b89fface0",
+      "bytes": 1584068
+    },
+    {
+      "file": "Pretendard-SemiBold.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-SemiBold.otf",
+      "sha256": "c89bc43027dc7cde5726e96223376f8eec09302b2fc1f8147fd5b57cfc376118",
+      "bytes": 1583704
+    },
+    {
+      "file": "Pretendard-Bold.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-Bold.otf",
+      "sha256": "2e91915fab54df71cc9598ebf608b2bdb54c6fe3c066ac61dff0bc44fca71cc7",
+      "bytes": 1576660
+    },
+    {
+      "file": "Pretendard-ExtraBold.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-ExtraBold.otf",
+      "sha256": "c35fe941b7568d52a96010561540e47f9d3948dfde66ba25bc1908233e0a40cd",
+      "bytes": 1568512
+    },
+    {
+      "file": "Pretendard-Black.otf",
+      "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/public/static/Pretendard-Black.otf",
+      "sha256": "94628b0bcea8936b6e5c30d98d685eb9bbaffb0fe2ed255542ecc656c248e021",
+      "bytes": 1559552
+    },
+    {
+      "file": "JetBrainsMono-Regular.ttf",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/ttf/JetBrainsMono-Regular.ttf",
+      "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+      "bytes": 273900
+    },
+    {
+      "file": "JetBrainsMono-SemiBold.ttf",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/ttf/JetBrainsMono-SemiBold.ttf",
+      "sha256": "1b3bfa1ed5665a4ce3f9feb68d2d4e40e70bf8b4b7d9a3edd418f321b4e166a0",
+      "bytes": 277092
+    },
+    {
+      "file": "JetBrainsMono-Bold.ttf",
+      "url": "https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@v2.304/fonts/ttf/JetBrainsMono-Bold.ttf",
+      "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+      "bytes": 277828
+    },
+    {
+      "file": "DejaVuSansMono.ttf",
+      "url": "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSansMono.ttf",
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582",
+      "bytes": 340712
+    },
+    {
+      "file": "DejaVuSansMono-Bold.ttf",
+      "url": "https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSansMono-Bold.ttf",
+      "sha256": "bce60f1b4421acd9ea51ba6623d7024ecbe6817a953e3654df62a5e6bdf8f769",
+      "bytes": 331992
+    },
+    {
+      "file": "Silkscreen-Regular.ttf",
+      "url": "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/silkscreen/Silkscreen-Regular.ttf",
+      "sha256": "c845473330b94c2079ce9af01c51ac8ba2d99c24f4d14c039843bbb8e642ebd8",
+      "bytes": 32220
+    },
+    {
+      "file": "Galmuri11.ttf",
+      "url": "https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/Galmuri11.ttf",
+      "sha256": "2c709890595668f7bdb6df408420fda957dde0288e95b31a1cc17a2ab98b4b4f",
+      "bytes": 5376428
+    }
+  ]
+}
