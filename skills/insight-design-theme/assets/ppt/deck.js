@@ -21,11 +21,12 @@ const pad2 = (n) => String(n).padStart(2, '0');
 
 // ---------- 분량 추정 ----------
 const WIDE = /[ᄀ-ᇿ㄰-㆏가-힯⺀-鿿豈-﫿＀-￯　-〿①-⑨]/;
-function estLines(text, widthIn, pt, mono) {
+function estWidth(text, pt, mono) {
   let em = 0;
   for (const ch of String(text)) em += WIDE.test(ch) ? 1 : ch === ' ' ? (mono ? 0.6 : 0.3) : mono ? 0.6 : 0.56;
-  return Math.max(1, Math.ceil((em * pt) / 72 / widthIn * 1.04));
+  return (em * pt) / 72 * 1.04;
 }
+const estLines = (text, widthIn, pt, mono) => Math.max(1, Math.ceil(estWidth(text, pt, mono) / widthIn));
 const LH = (pt, mult) => (pt * 1.2 * (mult || 1)) / 72; // PowerPoint 줄 높이 ≈ 글자 크기 × 1.2 × 줄 간격
 const textH = (t, w, pt, mult, mono) => String(t ?? '').split('\n').reduce((a, l) => a + estLines(l, w, pt, mono), 0) * LH(pt, mult);
 // 한 줄에 넘치는 제목은 낱말 경계에서 두 줄로 고르게 나눈다(PowerPoint에는 text-wrap: balance가 없다)
@@ -44,10 +45,16 @@ const split = (n, max) => { const k = Math.ceil(n / max), per = Math.ceil(n / k)
 
 // 코드: DejaVu 15pt, 줄 간격 1.2. DejaVu 줄 높이가 글자 크기의 약 1.16배라 실측 줄당 약 0.29in → 0.305로 잡는다
 const CODE_LINE = 0.305, CODE_PAD = 0.42, BAR = STYLE === 'terminal' ? 0.45 : 0;
+// 내어쓰기: 화면에서 줄바꿈된 다음 줄을 앞 공백과 목록 기호(-, *, +, 1., 1))만큼 들여 쓴다(웹 pixel.js와 같은 규칙).
+// DejaVu Sans Mono 한 글자 폭 = 1233/2048em. PowerPoint에서는 finish()가 코드 문단에 marL·indent로 넣는다.
+const hangChars = (l) => Math.min(12, (String(l).match(/^( *)((?:[-*+]|\d{1,3}[.)]) +)?/) || [''])[0].length);
+const CODE_CH = (15 * 1233) / 2048 / 72; // 15pt 한 글자 폭(in)
 function codeLineH(l, w) {
   if (!l.trim()) return 0.45 * CODE_LINE;
   if (/^··· /.test(l)) return 0.8 * estLines(l, w, 12, false) * CODE_LINE;
-  return estLines(l.replace(/\s*[①-⑨]/g, ' 0 '), w, 15, true) * CODE_LINE;
+  const t = l.replace(/\s*[①-⑨]/g, ' 0 '), tw = estWidth(t, 15, true);
+  if (tw <= w) return CODE_LINE;
+  return (1 + Math.ceil((tw - w) / (w - hangChars(l) * CODE_CH))) * CODE_LINE; // 다음 줄은 내어쓴 만큼 좁다
 }
 function chunkCode(lines, w, budgetAt) {
   const out = [];
@@ -81,6 +88,15 @@ const pointNeed = (t, w) => 0.62 + 0.2 + textH(t.title, w - 0.6, 21, 1.1) + (t.t
 const CELL_W = (10 * 18 - 4) / 96, cellH = (R) => (R * 18 - 4) / 96, UNIT_H = 0.36;
 const cellRows = (items) => Math.max(1, ...items.map((s) => (Number.isInteger(s.cells) ? Math.ceil(s.cells / 10) : 0)));
 const statNeed = (s, w, R) => 0.3 + 0.78 + (Number.isInteger(s.cells) ? cellH(R) + 0.16 : 0) + (s.label ? textH(s.label, w - 0.5, 15, 1.15) : 0) + (s.note ? 0.06 + textH(s.note, w - 0.5, 13, 1.2) : 0) + 0.3;
+
+// 큰 숫자 글자 폭(em, 글꼴 파일의 글자 폭 기준). Terminal은 Silkscreen(숫자 0.75em), Mosaic은 Pretendard Black(숫자 약 0.7em).
+// 한글은 Pretendard로 그려져 1em로 넉넉히 잡는다
+function numEm(t) {
+  const m = STYLE === 'mosaic';
+  let em = 0;
+  for (const ch of String(t)) em += WIDE.test(ch) ? 1 : ch === ' ' ? (m ? 0.22 : 0.5) : /[,.:;'`]/.test(ch) ? (m ? 0.31 : 0.5) : ch === '%' ? (m ? 1.03 : 0.88) : m ? 0.72 : 0.75;
+  return em;
+}
 
 // ---------- 배치 계획: 섹션마다 블록을 위에서 아래로 쌓고, 넘치면 다음 슬라이드 ----------
 function plan() {
@@ -255,6 +271,13 @@ async function finish(file, theme) {
       // 글자 언어를 한국어로(en-US면 PowerPoint가 한글을 단어 중간에서 끊는다)
       xml = xml.split('lang="en-US"').join('lang="ko-KR"');
       xml = xml.replace(/<a:pPr(?![^>]*eaLnBrk)/g, '<a:pPr eaLnBrk="0"').replace(/<a:p>(?!<a:pPr)/g, '<a:p><a:pPr eaLnBrk="0"/>');
+      // 코드 본문: 문단마다 내어쓰기(marL·indent). 글자는 그대로라 복사·검색 결과는 같다
+      if (/^ppt\/slides\//.test(name)) xml = xml.split('</p:sp>').map((sp) => (!sp.includes('name="코드 본문"') ? sp
+        : sp.replace(/<a:p>([\s\S]*?)<\/a:p>/g, (para, inner) => {
+          const text = [...inner.matchAll(/<a:t[^>]*>([^<]*)<\/a:t>/g)].map((m) => m[1]).join('');
+          const emu = text.trim() ? Math.round(hangChars(text) * CODE_CH * 914400) : 0;
+          return emu ? para.replace('indent="0" marL="0"', `indent="-${emu}" marL="${emu}"`) : para;
+        }))).join('</p:sp>');
       zip.file(name, xml);
     }
   }
@@ -405,6 +428,9 @@ async function build() {
     },
     stats: (s, p) => {
       const n = p.items.length, w = (CW - 0.3 * (n - 1)) / n, ch = p.h - (p.unit ? UNIT_H : 0);
+      // 값은 한 줄(wrap: false). 카드 폭을 넘으면 한 줄의 값을 같은 크기로 함께 줄인다
+      const room = (it) => w - 0.5 - (mosaic && typeof it.ratio === 'number' ? 0.6 : 0);
+      const numPt = Math.max(16, Math.min(mosaic ? 40 : 34, ...p.items.map((it) => Math.floor((room(it) * 72) / (numEm(it.value) * 1.08)))));
       if (p.unit) {
         rect(s, MX, p.y + ch + 0.15, 0.1, 0.1, mosaic ? K.ink : K.gold, null, '칸 막대 단위 표시');
         tb(s, p.unit, { x: MX + 0.18, y: p.y + ch + 0.06, w: CW - 0.18, h: 0.28, fontFace: F.mono, fontSize: 12, color: K.label, valign: 'middle', objectName: '칸 막대 단위' });
@@ -412,7 +438,7 @@ async function build() {
       p.items.forEach((it, i) => {
         const x = MX + i * (w + 0.3);
         rect(s, x, p.y, w, ch, K.card, K.cardLine, `숫자 카드 ${i + 1}`);
-        tb(s, String(it.value), { x: x + 0.25, y: p.y + 0.25, w: w - 0.5 - (mosaic && typeof it.ratio === 'number' ? 0.6 : 0), h: 0.78, fontFace: F.num, fontSize: mosaic ? 40 : 34, color: K.numFg, valign: 'middle', wrap: false, objectName: `숫자 ${i + 1}` });
+        tb(s, String(it.value), { x: x + 0.25, y: p.y + 0.25, w: room(it), h: 0.78, fontFace: F.num, fontSize: numPt, color: K.numFg, valign: 'middle', wrap: false, objectName: `숫자 ${i + 1}` });
         let y = p.y + 1.08;
         if (typeof it.ratio === 'number') {
           const k = Math.round(Math.max(0, Math.min(1, it.ratio)) * 10);

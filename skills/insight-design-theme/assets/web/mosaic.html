@@ -72,10 +72,10 @@
   .fmt-card .quote p { font-size: 13pt; }
 
   /* 큰 숫자 */
-  .stats { margin-top: 5mm; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 4mm; }
+  .stats { margin-top: 5mm; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4mm; }
   .stat { background: #fff; border: 1px solid var(--slate-200); padding: 5mm 5.5mm; }
   .stat .v { display: flex; align-items: center; justify-content: space-between; gap: 3mm; }
-  .stat b { font-size: 30pt; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; color: var(--navy-800); }
+  .stat b { font-size: 30pt; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; color: var(--navy-800); white-space: nowrap; }
   .stat span { display: block; margin-top: 2.5mm; font-size: 11pt; font-weight: 700; line-height: 1.4; color: var(--navy-800); }
   .stat small { display: block; margin-top: 1mm; font-size: 10pt; line-height: 1.45; color: var(--muted); }
   .stat .cells { margin-top: 3mm; }
@@ -240,7 +240,7 @@
           case 'points': return [{ wrap: () => '<div class="tips"></div>', items: b.items || [],
             item: (t, i) => `<div class="tip"><div>${PX.digits(String(i + 1).padStart(2, '0'), card ? 4.2 : 6.5, NAVY)}</div><div><h3>${esc(t.title)}</h3>${t.text ? `<p>${esc(t.text)}</p>` : ''}</div></div>` }];
           case 'table': return [{ keep: (b.rows || []).length <= 8, wrap: () => `<table class="tbl"><thead><tr>${(b.head || []).map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody></tbody></table>`, target: 'tbody',
-            items: b.rows || [], item: (r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>` }];
+            items: b.rows || [], item: (r) => `<tr>${r.map((c) => `<td${/\S{30,}/.test(String(c)) ? ' class="brk"' : ''}>${esc(c)}</td>`).join('')}</tr>` }];
           case 'code': {
             const lab = b.excerpt === false ? '원문 전체' : '원문 발췌', lines = PX.promptLines(b.body || '');
             const parts = [{ wrap: (cont) => `<div class="codebox"><div class="cap"><span>${esc(b.file || '')}${cont ? ' (이어서)' : ''}</span><span>${lab}</span></div><div class="code"></div></div>`,
