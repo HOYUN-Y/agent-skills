@@ -1,23 +1,31 @@
 """Extract leading text of PDF/DOCX/DOC/PPTX/XLSX under src-* into per-source manifests.
-Same skip rules as manifest.py (private paths, secret names, dependency dirs).
+Same skip rules as manifest.py (sources.py: private paths and aliases, secret names, PII-looking names,
+dependency dirs, links inside sources). Row: path | extraction scope | excerpt.
 Files whose text looks like it holds a resident ID or a password are listed in sensitive.txt
 and their excerpt is NOT written.
+failed.txt holds `path | status` only (tool_missing, timeout, exit_<code>, bad_archive, read_error, error:<type>);
+tool output and error messages are never copied, they can hold document text.
+A clean conversion with no text is a row marked (텍스트 없음 ...) and is counted apart from failures.
 Output holds excerpts of personal documents: keep <out_dir> outside the vault and delete it after use.
 Tools: PDF needs `pdftotext` (poppler, any OS). DOCX/ODT/PPTX/XLSX are read with zipfile (any OS).
-DOC/RTF need macOS `textutil`; elsewhere they go to failed.txt.
+DOC/RTF need macOS `textutil`; elsewhere they go to failed.txt as tool_missing.
 Usage: python3 -I doc_manifest.py <vault> <out_dir>
+       python3 -I doc_manifest.py <vault> <out_dir> --paths <list>   # only these vault paths
        python3 -I doc_manifest.py --selftest
 """
-import os, re, sys, shutil, subprocess, tempfile, unicodedata, zipfile, html
+import os, re, sys, shutil, subprocess, tempfile, zipfile, html
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from private_paths import load_private_paths, SECRET_RE as SECRET
+from sources import Policy, SENSITIVE_RE as SENSITIVE, out_file, read_paths
+from manifest import targets
 
-nfc = lambda s: unicodedata.normalize("NFC", s)
-SKIP_DIRS = {"node_modules", ".git", ".venv", "venv", "site-packages", "__pycache__", ".conda", "staticfiles", ".next", "dist", "build", ".changelog-backups"}
 EXTS = (".pdf", ".docx", ".doc", ".rtf", ".odt", ".pptx", ".xlsx")
-SENSITIVE = re.compile(r"(\d{6}\s?-\s?[1-4]\d{6}|(비밀번호|비번|password|passwd|pw)\s*[:=：]\s*\S|주민등록번호)", re.I)
 EXCERPT, TIMEOUT = 400, 90
+EMPTY = "(텍스트 없음: 정상 변환, 스캔 이미지일 수 있음)"
+
+
+class ExtractError(Exception):
+    """Carries a fixed status code only, never tool output."""
 
 
 def xml_text(path, members_re, tag_re):
@@ -28,9 +36,27 @@ def xml_text(path, members_re, tag_re):
 
 def run_tool(cmd, path):
     if not shutil.which(cmd[0]):
-        raise FileNotFoundError(f"{cmd[0]} 없음")
-    return subprocess.run(cmd + [path] + (["-"] if cmd[0] == "pdftotext" else []),
-                          capture_output=True, timeout=TIMEOUT).stdout.decode("utf-8", "replace")
+        raise ExtractError("tool_missing")
+    try:
+        r = subprocess.run(cmd + [path] + (["-"] if cmd[0] == "pdftotext" else []),
+                           capture_output=True, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise ExtractError("timeout")
+    except OSError:
+        raise ExtractError("tool_error")
+    if r.returncode != 0:   # stderr is discarded: it may quote the document
+        raise ExtractError(f"exit_{r.returncode}")
+    return r.stdout.decode("utf-8", "replace")
+
+
+# What extract() actually reads, so an excerpt is never reported as covering the whole document.
+SCOPES = {".pdf": "PDF 앞 3쪽", ".docx": "DOCX 본문(머리글·바닥글·각주·메모 제외)", ".odt": "ODT 본문 문단·제목",
+          ".pptx": "PPTX 슬라이드 텍스트(발표자 노트 제외)", ".xlsx": "XLSX 공유 문자열만(숫자·수식·인라인 문자열 제외)",
+          ".doc": "textutil 변환 텍스트", ".rtf": "textutil 변환 텍스트"}
+
+
+def scope(path):
+    return SCOPES[os.path.splitext(path)[1].lower()]
 
 
 def extract(path):
@@ -48,40 +74,46 @@ def extract(path):
     return run_tool(["textutil", "-convert", "txt", "-stdout"], path)   # .doc / .rtf
 
 
-def main(vault, out_dir):
+def status_of(e):
+    if isinstance(e, ExtractError):
+        return e.args[0]
+    if isinstance(e, zipfile.BadZipFile):
+        return "bad_archive"
+    if isinstance(e, OSError):
+        return "read_error"
+    return f"error:{type(e).__name__}"
+
+
+def main(vault, out_dir, paths_file=None):
     router = open(os.path.join(vault, "CLAUDE.md"), encoding="utf-8").read()
-    private = load_private_paths(vault, router)
-    is_private = lambda rel: any(rel == n or rel.startswith(n + "/") for n in private)
+    policy = Policy(vault, router)
+    policy.check_out(out_dir)
+    by_top, skipped = targets(policy, EXTS, read_paths(paths_file) if paths_file else None)
     os.makedirs(out_dir, exist_ok=True)
-    sensitive, failed = [], []
-    for src in sorted(n for n in os.listdir(vault) if n.startswith("src-")):
+    sensitive, failed, empty = [], [], 0
+    for top, files in sorted(by_top.items()):
         rows = []
-        for dp, dn, fn in os.walk(os.path.join(vault, src), followlinks=True):
-            rel_dp = nfc(os.path.relpath(dp, vault)).replace(os.sep, "/")
-            dn[:] = sorted(d for d in dn if d not in SKIP_DIRS and not SECRET.search(d) and not d.startswith(".") and not d.startswith("eclipse")
-                           and not is_private(f"{rel_dp}/{nfc(d)}"))
-            for f in sorted(fn):
-                rel = f"{rel_dp}/{nfc(f)}"
-                if not f.lower().endswith(EXTS) or f.startswith(("~$", ".")) or SECRET.search(f) or is_private(rel):
-                    continue
-                try:
-                    text = re.sub(r"\s+", " ", extract(os.path.join(dp, f))).strip()
-                except Exception as e:   # timeout, broken zip, missing tool or download …
-                    failed.append(f"{rel} | {e.__class__.__name__}: {e}"[:300]); continue
-                if SENSITIVE.search(text):
-                    sensitive.append(rel); continue
-                rows.append(f"{rel} | {text[:EXCERPT] or '(텍스트 없음: 스캔 이미지일 수 있음)'}")
-        with open(os.path.join(out_dir, f"{src}.docs.txt"), "w", encoding="utf-8") as out:
+        for rel, p in files:
+            try:
+                text = re.sub(r"\s+", " ", extract(p)).strip()
+            except Exception as e:   # timeout, broken zip, missing tool, download failure ...
+                failed.append(f"{rel} | {status_of(e)}"); continue
+            if SENSITIVE.search(text):
+                sensitive.append(rel); continue
+            empty += not text
+            rows.append(f"{rel} | {scope(rel)} | {text[:EXCERPT] or EMPTY}")
+        with open(out_file(out_dir, f"{top}.docs.txt"), "w", encoding="utf-8") as out:
             out.write("\n".join(rows) + "\n")
-        print(src, len(rows), "docs", flush=True)
-    open(os.path.join(out_dir, "sensitive.txt"), "w", encoding="utf-8").write("\n".join(sensitive) + "\n")
-    open(os.path.join(out_dir, "failed.txt"), "w", encoding="utf-8").write("\n".join(failed) + "\n")
-    print("sensitive", len(sensitive), "failed", len(failed))
+        print(top, len(rows), "docs", flush=True)
+    open(out_file(out_dir, "sensitive.txt"), "w", encoding="utf-8").write("\n".join(sensitive) + "\n")
+    open(out_file(out_dir, "failed.txt"), "w", encoding="utf-8").write("\n".join(failed) + "\n")
+    print("sensitive", len(sensitive), "failed", len(failed), "empty", empty,
+          "| 제외:", ", ".join(f"{k} {v}" for k, v in sorted(skipped.items())) or "없음")
 
 
 def selftest():
     assert SENSITIVE.search("주민등록번호 900101-1234567") and SENSITIVE.search("PW: abc") and not SENSITIVE.search("password_change_form")
-    with tempfile.TemporaryDirectory() as t:
+    with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
         os.makedirs(os.path.join(t, "src-a", "비밀"))
         with zipfile.ZipFile(os.path.join(t, "src-a", "plan.docx"), "w") as z:
             z.writestr("word/document.xml", '<w:p><w:r><w:t>배포 계획</w:t></w:r><w:r><w:t xml:space="preserve"> 1차 &amp; 2차</w:t></w:r></w:p>')
@@ -91,34 +123,78 @@ def selftest():
             z.writestr("word/document.xml", "<w:t>주민등록번호</w:t>")
         with zipfile.ZipFile(os.path.join(t, "src-a", "비밀", "x.docx"), "w") as z:
             z.writestr("word/document.xml", "<w:t>hidden</w:t>")
+        open(os.path.join(t, "src-a", "broken.docx"), "w").write("not a zip: secret body text")
         open(os.path.join(t, "CLAUDE.md"), "w", encoding="utf-8").write("- 비공개: `src-a/비밀`\n")
-        main(t, os.path.join(t, "out"))
-        docs = open(os.path.join(t, "out", "src-a.docs.txt"), encoding="utf-8").read()
-        assert "src-a/plan.docx | 배포 계획 1차 & 2차" in docs and "src-a/note.odt | 운영 메모" in docs, docs
+        main(t, os.path.join(o, "out"))
+        docs = open(os.path.join(o, "out", "src-a.docs.txt"), encoding="utf-8").read()
+        assert f"src-a/plan.docx | {SCOPES['.docx']} | 배포 계획 1차 & 2차" in docs and f"src-a/note.odt | {SCOPES['.odt']} | 운영 메모" in docs, docs
         assert "hidden" not in docs and "id.docx" not in docs, docs
-        assert open(os.path.join(t, "out", "sensitive.txt"), encoding="utf-8").read() == "src-a/id.docx\n"
+        assert open(os.path.join(o, "out", "sensitive.txt"), encoding="utf-8").read() == "src-a/id.docx\n"
+        assert open(os.path.join(o, "out", "failed.txt"), encoding="utf-8").read() == "src-a/broken.docx | bad_archive\n"
+        try:
+            main(t, os.path.join(t, "src-a"))   # output inside a source
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("excerpt output inside a source accepted")
+        assert not os.path.exists(os.path.join(t, "src-a", "src-a.docs.txt"))
+        if os.name != "nt":
+            # conversion status: a tool that fails, one that prints nothing, one that hangs, and no tool at all
+            global TIMEOUT
+            bindir = os.path.join(o, "bin"); os.makedirs(bindir)
+            fake = os.path.join(bindir, "pdftotext")
+            for f in ("bad.pdf", "scan.pdf", "slow.pdf"):
+                open(os.path.join(t, "src-a", f), "w").write("%PDF")
+            open(fake, "w").write('#!/bin/sh\ncase "$4" in *bad.pdf) echo "secret stderr" >&2; exit 3;; '
+                                  '*slow.pdf) exec sleep 5;; esac\nexit 0\n')
+            os.chmod(fake, 0o755)
+            old_path, old_timeout = os.environ.get("PATH", ""), TIMEOUT
+            os.environ["PATH"], TIMEOUT = bindir + os.pathsep + old_path, 1
+            try:
+                main(t, os.path.join(o, "pdf-out"))
+                failed = open(os.path.join(o, "pdf-out", "failed.txt"), encoding="utf-8").read()
+                docs = open(os.path.join(o, "pdf-out", "src-a.docs.txt"), encoding="utf-8").read()
+                assert "src-a/bad.pdf | exit_3" in failed and "src-a/slow.pdf | timeout" in failed and "secret" not in failed, failed
+                assert f"src-a/scan.pdf | PDF 앞 3쪽 | {EMPTY}" in docs and "bad.pdf" not in docs, docs
+                os.environ["PATH"] = os.path.join(o, "nothing")
+                main(t, os.path.join(o, "nopdf-out"))
+                failed = open(os.path.join(o, "nopdf-out", "failed.txt"), encoding="utf-8").read()
+                assert "src-a/scan.pdf | tool_missing" in failed, failed
+            finally:
+                os.environ["PATH"], TIMEOUT = old_path, old_timeout
+            for f in ("bad.pdf", "scan.pdf", "slow.pdf"):
+                os.remove(os.path.join(t, "src-a", f))
         os.makedirs(os.path.join(t, ".secondbrain"))
         open(os.path.join(t, "CLAUDE.md"), "w", encoding="utf-8").write(
             "- 비공개 장부: .secondbrain/private-paths.txt\n")
         ledger = os.path.join(t, ".secondbrain", "private-paths.txt")
         open(ledger, "w", encoding="utf-8").write("src-a/비밀\nsrc-a/plan.docx\n")
-        main(t, os.path.join(t, "ledger-out"))
-        docs = open(os.path.join(t, "ledger-out", "src-a.docs.txt"), encoding="utf-8").read()
+        main(t, os.path.join(o, "ledger-out"))
+        docs = open(os.path.join(o, "ledger-out", "src-a.docs.txt"), encoding="utf-8").read()
         assert "plan.docx" not in docs and "hidden" not in docs and "note.odt" in docs, docs
+        lst = os.path.join(o, "list.tsv")
+        open(lst, "w", encoding="utf-8").write("src-a/note.odt\nsrc-a/plan.docx\n")
+        main(t, os.path.join(o, "list-out"), lst)
+        docs = open(os.path.join(o, "list-out", "src-a.docs.txt"), encoding="utf-8").read()
+        assert docs == f"src-a/note.odt | {SCOPES['.odt']} | 운영 메모\n", docs
         os.remove(ledger)
         try:
-            main(t, os.path.join(t, "missing-out"))
+            main(t, os.path.join(o, "missing-out"))
         except FileNotFoundError:
             pass
         else:
             raise AssertionError("missing ledger must abort")
-        assert not os.path.exists(os.path.join(t, "missing-out"))
+        assert not os.path.exists(os.path.join(o, "missing-out"))
     print("selftest ok")
 
 
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         selftest(); sys.exit(0)
-    if len(sys.argv) != 3:
+    args = sys.argv[1:]
+    if len(args) == 4 and args[2] == "--paths":
+        main(args[0], args[1], args[3])
+    elif len(args) == 2:
+        main(*args)
+    else:
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2])

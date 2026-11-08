@@ -15,6 +15,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -I scripts/check_index.py --selftest
+      - run: python -I scripts/inventory.py --selftest
       - run: python -I scripts/manifest.py --selftest
       - run: python -I scripts/doc_manifest.py --selftest
       - run: python -I scripts/build_topics.py --selftest
@@ -22,12 +23,14 @@ jobs:
         run: |
           HOME=$RUNNER_TEMP sh install.sh "$RUNNER_TEMP/vault"
           test -L "$RUNNER_TEMP/.claude/skills/secondbrain-index-sync" && grep -q vault "$RUNNER_TEMP/.config/secondbrain-index-sync/vault"
+          test -f "$RUNNER_TEMP/.claude/skills/secondbrain-index-sync/scripts/inventory.py"
       - if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $env:USERPROFILE = $env:RUNNER_TEMP
           ./install.ps1 "$env:RUNNER_TEMP\vault"
           if (-not (Test-Path "$env:RUNNER_TEMP\.agents\skills\secondbrain-index-sync\SKILL.md")) { exit 1 }
+          if (-not (Test-Path "$env:RUNNER_TEMP\.agents\skills\secondbrain-index-sync\scripts\inventory.py")) { exit 1 }
   skills-cli:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # checks that `npx skills add` installs the published repo
@@ -40,3 +43,8 @@ jobs:
           find $HOME -path '*secondbrain-index-sync/SKILL.md' | grep .
           find $HOME -path '*secondbrain-index-sync/references/setup.md' | grep .
           find $HOME -path '*secondbrain-index-sync/references/full-reindex.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/references/index-update.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/references/incremental-sync.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/references/catalog.md' | grep .
+          find $HOME -path '*secondbrain-index-sync/scripts/inventory.py' | grep .
+          find $HOME -path '*secondbrain-index-sync/scripts/sources.py' | grep .
