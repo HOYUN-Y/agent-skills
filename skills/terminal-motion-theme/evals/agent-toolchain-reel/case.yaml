@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: agent-toolchain-reel
+expected_outcome: |
+  주제가 세컨드 브레인이 아닌 "도구 환경 + 에이전트 영상 제작 과정"일 때도 terminal 테마 영상이 나온다.
+  1920x1080과 1080x1920 MP4(30fps, 20초) 두 개와 다시 렌더 가능한 소스가 있고, 화면의 도구 버전·수치는
+  추격씬·Blender README 기록과 일치하며, 세로판은 릴스 안전 영역을 지킨다.
+  입력 README는 사용자 외장 SSD에 있어 이 저장소에 복사하지 않았다(CLI로 돌리려면 files/에 사본이 필요).

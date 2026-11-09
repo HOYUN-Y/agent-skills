@@ -1,6 +1,6 @@
 # Agent Skills
 
-Codex와 Claude Code에서 사용하는 개인 스킬 9개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
+Codex와 Claude Code에서 사용하는 개인 스킬 10개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
 
 | 스킬 | 용도 |
 |---|---|
@@ -13,6 +13,7 @@ Codex와 Claude Code에서 사용하는 개인 스킬 9개를 한곳에서 관�
 | [secondbrain-index-sync](skills/secondbrain-index-sync/SKILL.md) | 세컨드브레인 색인·주제 연결 관리 |
 | [insight-design-theme](skills/insight-design-theme/SKILL.md) | Artificial Insight 디자인 테마로 인스타 카드·PDF·PPT 제작 |
 | [translating-report](skills/translating-report/SKILL.md) | 자연스러운 한국어 번역·원문 대조·내장 Artificial Insight Mosaic HTML/PDF 템플릿 |
+| [terminal-motion-theme](skills/terminal-motion-theme/SKILL.md) | Artificial Insight 터미널 테마의 주제 무관 모션 영상(Remotion, 16:9·9:16) 연출 문법과 시작 템플릿 |
 
 ## 설치와 갱신
 
@@ -56,6 +57,8 @@ fi
 - **research:** 브라우저 제어 도구가 필요합니다. 플랫폼 접근과 로그인 상태에 따라 확인 범위가 달라집니다.
 - **insight-design-theme:** Google Chrome이 필요합니다. 웹 글꼴은 저장소에 넣지 않고 처음 사용할 때 `python3 -I skills/insight-design-theme/scripts/fetch_fonts.py`로 스킬 폴더 안에 받습니다(버전·검증값 고정). PPT를 만들 때만 `npm ci --prefix skills/insight-design-theme/assets/ppt`와 데스크톱 글꼴 설치가 필요하며, 스킬은 둘 다 사용자 승인 없이 설치하지 않습니다. 미리보기·복사 검사와 PowerPoint 확인은 macOS 기준입니다. 글꼴 라이선스는 `assets/fonts/licenses/`에 있습니다.
 
+- **terminal-motion-theme:** `insight-design-theme`가 같은 설치 폴더(또는 `~/.claude/skills`)에 있어야 합니다. 새 프로젝트는 `sh skills/terminal-motion-theme/scripts/new_project.sh <폴더>`로 만들며, 그 스킬의 글꼴(`fetch_fonts.py`로 받은 것)·`brand.json`을 복사합니다. 스크립트는 패키지를 설치하지 않고, 프로젝트의 `npm install`(remotion 4.0.540·react 19.3.1 고정)과 Chrome Headless Shell 준비는 사용자 승인 후 진행합니다. 렌더 브라우저 경로와 검증은 macOS(Apple Silicon) 기준입니다. 검사 스크립트는 ffmpeg/ffprobe가 필요합니다.
+
 ## 공통 코드 리뷰어
 
 [Code Reviewer](reviewer/README.md)는 공통 지침에서 Claude Code·Codex용 프로젝트 서브에이전트 정의를 생성합니다. 요청 시에만 변경사항·전체 저장소·특정 영역을 검토하도록 구성하며 결함과 개선 제안을 구분합니다. 스킬 설치와 별개인 도구입니다. Claude의 합성 예제 실행과 Codex의 Herdr 대화형 전용 호출·공통 지침 주입·결함 발견을 확인했습니다. 환경별 검증 범위와 한계는 리뷰어 문서를 참고하세요.
@@ -78,6 +81,8 @@ python3 -I skills/insight-design-theme/scripts/lint_content.py --selftest
 python3 -I skills/insight-design-theme/scripts/check_pdf_text.py --selftest
 python3 -I skills/insight-design-theme/scripts/fetch_fonts.py --selftest
 python3 -I skills/insight-design-theme/scripts/lint_content.py skills/insight-design-theme/assets/examples/showcase.json
+python3 -I skills/terminal-motion-theme/scripts/check_video.py --selftest
+sh -n skills/terminal-motion-theme/scripts/new_project.sh
 node --check skills/insight-design-theme/assets/ppt/deck.js
 ```
 

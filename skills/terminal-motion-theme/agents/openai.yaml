@@ -1,0 +1,4 @@
+interface:
+  display_name: "Terminal 모션 테마"
+  short_description: "Artificial Insight 터미널 테마로 주제와 상관없는 모션 영상을 16:9·9:16로 만들고 규격·튐을 검사합니다."
+  default_prompt: "$terminal-motion-theme 이 작업 과정을 20초짜리 터미널 스타일 영상으로 만들어 주세요. 릴스용 세로판도 함께요."

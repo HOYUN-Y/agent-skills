@@ -1,0 +1,25 @@
+{
+  "name": "terminal-motion-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Artificial Insight terminal 모션 영상 (Remotion, 모의 데이터)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "setup:browser": "npx remotion browser ensure && sh scripts/setup-browser.sh",
+    "check:fit": "esbuild src/check/fit.ts --bundle --platform=node --format=esm --external:remotion --log-level=warning --outfile=out/.fit.mjs && node out/.fit.mjs",
+    "stills": "sh scripts/stills.sh",
+    "draft": "remotion render src/index.ts Landscape out/draft_960x540.mp4 --scale=0.5 && remotion render src/index.ts Portrait out/draft_540x960.mp4 --scale=0.5",
+    "render": "remotion render src/index.ts Landscape out/video_1920x1080.mp4 && remotion render src/index.ts Portrait out/video_1080x1920.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.540",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.540"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}
