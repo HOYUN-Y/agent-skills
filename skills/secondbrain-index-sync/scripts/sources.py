@@ -3,7 +3,7 @@
 Reads names and metadata only. Every script that lists, excerpts or searches source files uses this,
 so the same exclusions apply to inventory, move search and excerpts.
 """
-import hashlib, json, ntpath, os, re, unicodedata
+import hashlib, json, ntpath, os, re, sys, unicodedata
 from collections import Counter
 
 from private_paths import load_private_paths, SECRET_RE
@@ -23,6 +23,12 @@ POLICY_VERSION = 1
 def path_id(real):
     """Short hash of a real path: stored instead of absolute paths (Drive paths can hold an account email)."""
     return hashlib.sha256(nfc(real).encode()).hexdigest()[:16]
+
+
+def utf8_stdout():
+    """Keep Unicode paths and reports printable when Windows redirects stdout using a legacy code page."""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
 def is_link(path):

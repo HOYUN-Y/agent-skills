@@ -16,7 +16,7 @@ Usage: python3 -I doc_manifest.py <vault> <out_dir>
 import os, re, sys, shutil, subprocess, tempfile, zipfile, html
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sources import Policy, SENSITIVE_RE as SENSITIVE, out_file, read_paths
+from sources import Policy, SENSITIVE_RE as SENSITIVE, out_file, read_paths, utf8_stdout
 from manifest import targets
 
 EXTS = (".pdf", ".docx", ".doc", ".rtf", ".odt", ".pptx", ".xlsx")
@@ -189,6 +189,7 @@ def selftest():
 
 
 if __name__ == "__main__":
+    utf8_stdout()
     if "--selftest" in sys.argv:
         selftest(); sys.exit(0)
     args = sys.argv[1:]

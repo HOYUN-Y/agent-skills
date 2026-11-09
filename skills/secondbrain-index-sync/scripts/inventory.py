@@ -24,7 +24,7 @@ from urllib.parse import unquote
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_index as ci
 from check_index import ROUTER, encode, links, read, relp
-from sources import INVENTORY, REVIEW, Policy, is_link, load_json, nfc, read_paths
+from sources import INVENTORY, REVIEW, Policy, is_link, load_json, nfc, read_paths, utf8_stdout
 
 MARKER = "<!-- secondbrain-index-sync:catalog 자동 생성 파일. 직접 고치지 말고 inventory.py --write로 다시 만든다 -->"
 PAGE_LINES, LIST_CAP = 80, 50
@@ -772,4 +772,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    utf8_stdout()
     sys.exit(main(sys.argv[1:]))

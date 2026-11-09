@@ -13,7 +13,7 @@ from urllib.parse import unquote
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from private_paths import load_private_paths, SECRET_RE
-from sources import Policy, INVENTORY, is_link, load_json
+from sources import Policy, INVENTORY, is_link, load_json, utf8_stdout
 
 ROUTER = "CLAUDE.md"
 SKIP_NAMES = {".DS_Store", "AGENTS.md", ROUTER, "Icon\r"}
@@ -507,6 +507,7 @@ def selftest():
 
 
 if __name__ == "__main__":
+    utf8_stdout()
     if "--selftest" in sys.argv:
         selftest(); sys.exit(0)
     args = [a for a in sys.argv[1:] if not a.startswith("--")]

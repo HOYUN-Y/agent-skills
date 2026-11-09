@@ -11,7 +11,7 @@ import os, sys, tempfile
 from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sources import Policy, SENSITIVE_RE, out_file, read_paths
+from sources import Policy, SENSITIVE_RE, out_file, read_paths, utf8_stdout
 
 EXTS = (".md", ".txt")
 EXCERPT = 240
@@ -81,6 +81,15 @@ def main(vault, out_dir, paths_file=None):
 
 
 def selftest():
+    import io
+    from contextlib import redirect_stdout
+    buffer = io.BytesIO()
+    with io.TextIOWrapper(buffer, encoding="ascii") as output:
+        with redirect_stdout(output):
+            utf8_stdout()
+            print("문서 경로")
+            output.flush()
+        assert buffer.getvalue() == "문서 경로\n".encode("utf-8")
     with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
         os.makedirs(os.path.join(t, "src-a", "hidden"))
         os.makedirs(os.path.join(t, ".secondbrain"))
@@ -144,6 +153,7 @@ def selftest():
 
 
 if __name__ == "__main__":
+    utf8_stdout()
     if "--selftest" in sys.argv:
         selftest(); sys.exit(0)
     args = sys.argv[1:]
