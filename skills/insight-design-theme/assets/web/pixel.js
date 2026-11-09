@@ -51,35 +51,65 @@
     const iv = coverage((c) => c.fill(new Path2D(IVORY)));
     // i 기둥은 A와 같은 기준으로 잘라 바닥선이 맞게 한다. 얇은 눈 테두리만 낮은 기준을 쓴다.
     const stem = coverage((c) => c.fill(new Path2D(GOLD_STEM)));
-    const eye = coverage((c) => {
-      c.fill(new Path2D(GOLD_EYE), 'evenodd');
-      c.beginPath();
-      c.arc(820.5, 398, 28.75, 0, Math.PI * 2);
-      c.fill();
-    });
-    // 칸이 굵어 눈 테두리와 동공이 뭉치는 크기에서는 손으로 찍은 눈 도트를 쓴다.
-    const useMask = opt.eyeMask ?? cell > 20;
     let stemTop = rows;
     for (let i = 0; i < stem.length; i++) if (stem[i] >= thr) { stemTop = Math.floor(i / cols); break; }
-    const maskCells = new Set();
+    // 눈은 좌우·상하 대칭으로 그리고, i 기둥과 같은 세로축에 둔다.
+    // 기준축 = 기둥에서 가장 넓은 줄(위쪽)의 칸 범위 중심. 기둥은 아래로 갈수록 좁아지므로 아래쪽 줄은 쓰지 않는다.
+    // 축이 정수면 칸 경계, .5면 칸 중심이다.
+    let widest = [];
+    for (let r = 0; r < rows; r++) {
+      const run = [];
+      for (let c = 0; c < cols; c++) if (stem[r * cols + c] >= thr) run.push(c);
+      if (run.length > widest.length) widest = run;
+    }
+    const axis = (widest[0] + widest[widest.length - 1] + 1) / 2;
+    // 눈 테두리(약 17~22단위)보다 칸이 크면 래스터화가 테두리와 동공을 뭉치므로 손으로 찍은 눈 도트를 쓴다.
+    const useMask = opt.eyeMask ?? cell > 18;
+    const eyeCells = new Set();
     if (useMask) {
-      const cc = Math.floor((820.5 - x0) / cell);
+      const mask = Number.isInteger(axis) ? EYE_MASK_EVEN : EYE_MASK;
+      const left = Math.round(axis - mask[0].length / 2);
       const cr = Math.min(Math.floor((398 - y0) / cell), stemTop - 4); // 눈과 기둥 사이 최소 1칸
-      EYE_MASK.forEach((row, y) => [...row].forEach((b, x) => { if (b === '#') maskCells.add((cr - 2 + y) * cols + (cc - 3 + x)); }));
+      mask.forEach((row, y) => [...row].forEach((b, x) => { if (b === '#') eyeCells.add((cr - 2 + y) * cols + (left + x)); }));
+    } else {
+      // 눈 중심을 기준축과 가장 가까운 칸 중심·경계로 옮겨 래스터화한 뒤, 좌우·상하로 접어 평균 낸다.
+      const halfH = Math.ceil((452.5 - 398) / cell + 0.5);
+      let ay = Math.round(((398 - y0) / cell) * 2) / 2;
+      while (ay + halfH > stemTop - 1) ay -= 0.5; // 눈과 기둥 사이 최소 1칸
+      const dx = x0 + axis * cell - 820.5, dy = y0 + ay * cell - 398;
+      const eye = coverage((c) => {
+        c.translate(dx, dy);
+        c.fill(new Path2D(GOLD_EYE), 'evenodd');
+        c.beginPath();
+        c.arc(820.5, 398, 28.75, 0, Math.PI * 2);
+        c.fill();
+      });
+      for (let r = 0; r < stemTop - 1; r++)
+        for (let c = 0; c < cols; c++) {
+          const mc = Math.round(2 * axis - 1 - c), mr = Math.round(2 * ay - 1 - r);
+          const vals = [eye[r * cols + c]];
+          if (mc >= 0 && mc < cols) vals.push(eye[r * cols + mc]);
+          if (mr >= 0 && mr < rows) vals.push(eye[mr * cols + c]);
+          if (mc >= 0 && mc < cols && mr >= 0 && mr < rows) vals.push(eye[mr * cols + mc]);
+          if (vals.reduce((s, v) => s + v, 0) / vals.length >= thrGold) eyeCells.add(r * cols + c);
+        }
     }
     const cells = [];
     for (let r = 0; r < rows; r++)
       for (let c = 0; c < cols; c++) {
         const i = r * cols + c;
-        const gold = stem[i] >= thr || (useMask ? maskCells.has(i) : eye[i] >= thrGold);
-        if (gold && (stem[i] >= iv[i] || useMask || eye[i] >= iv[i])) cells.push({ x: c, y: r, k: 'gold' });
+        const isEye = eyeCells.has(i);
+        const gold = stem[i] >= thr || isEye;
+        if (gold && (stem[i] >= iv[i] || useMask || isEye)) cells.push({ x: c, y: r, k: 'gold' });
         else if (iv[i] >= thr) cells.push({ x: c, y: r, k: 'ivory' });
       }
     return { cols, rows, cells };
   }
 
-  // 작은 크기용 눈: 아몬드 테두리 + 1칸 동공, 동공과 테두리 사이 1칸 여백
+  // 작은 크기용 눈: 아몬드 테두리 + 동공, 동공과 테두리 사이 1칸 여백.
+  // 기준축이 칸 중심이면 7칸(동공 1칸), 칸 경계면 8칸(동공 2칸)을 써서 기둥과 같은 축에 맞춘다.
   const EYE_MASK = ['..###..', '.#...#.', '#..#..#', '.#...#.', '..###..'];
+  const EYE_MASK_EVEN = ['..####..', '.#....#.', '#..##..#', '.#....#.', '..####..'];
 
   // 원본 벡터 로고를 네이비 타일에 그대로 (로고 3색 유지)
   function logoTile(size, opt) {

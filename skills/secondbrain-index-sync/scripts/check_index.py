@@ -8,10 +8,12 @@ Usage:
   python3 -I check_index.py --selftest
 """
 import os, re, sys, time, tempfile, unicodedata
+from collections import defaultdict
 from urllib.parse import unquote
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from private_paths import load_private_paths, SECRET_RE
+from sources import Policy, INVENTORY, is_link, load_json, utf8_stdout
 
 ROUTER = "CLAUDE.md"
 SKIP_NAMES = {".DS_Store", "AGENTS.md", ROUTER, "Icon\r"}
@@ -19,12 +21,11 @@ SKIP_NAMES = {".DS_Store", "AGENTS.md", ROUTER, "Icon\r"}
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
 CODE_RE = re.compile(r"`[^`]*`")
 MAX_LINES = 100                     # an index longer than this should be split into sub-indexes
+MAX_CHARS, LONG_LINE = 8000, 500    # reading volume: line count alone hides long one-line paragraphs
 
 nfc = lambda s: unicodedata.normalize("NFC", s)
 # Vault-relative path with "/" separators on every OS (links and the private list use "/").
 relp = lambda p, root: os.path.relpath(p, root).replace(os.sep, "/")
-# Windows junctions (mklink /J) are not symlinks to islink(); treat both as links. isjunction needs Python 3.12+.
-is_link = lambda p: os.path.islink(p) or getattr(os.path, "isjunction", lambda _: False)(p)
 
 
 def links(text):
@@ -46,15 +47,29 @@ def resolve(base_dir, href):
             out.append(seg); continue
         if seg == "..":
             out.append(seg); cur = os.path.dirname(cur); continue
-        want = nfc(unquote(seg))
-        try:
-            hit = next((e for e in os.listdir(cur) if nfc(e) == want), None)
-        except (NotADirectoryError, FileNotFoundError, PermissionError):
-            hit = None
+        raw = unquote(seg)
+        names = _listing(cur).get(nfc(raw), [])
+        # exact disk name first; an NFC match only when unique (two spellings on disk: ambiguous, never auto-picked)
+        hit = raw if raw in names else (names[0] if len(names) == 1 else None)
         if hit is None:
             return None, None
         out.append(encode(hit)); cur = os.path.join(cur, hit)
     return "/".join(out) + tail, cur
+
+
+_LS = {}
+
+
+def _listing(d):
+    """NFC name -> on-disk names of a directory, cached per run (generated catalogs link thousands of files)."""
+    if d not in _LS:
+        _LS[d] = defaultdict(list)
+        try:
+            for e in sorted(os.listdir(d)):
+                _LS[d][nfc(e)].append(e)
+        except OSError:
+            pass
+    return _LS[d]
 
 
 def read(p):
@@ -75,26 +90,15 @@ def private_names(router_text):
     return names
 
 
-def run(root, normalize=False, out=print):
-    root = os.path.abspath(root)
-    rpath = os.path.join(root, ROUTER)
-    if not os.path.exists(rpath):
-        out(f"ERROR: {ROUTER} 없음: {root}"); return 2
-    router = read(rpath)
-    if router is None:
-        out(f"ERROR: {ROUTER} 읽기 실패: {rpath}"); return 2
-    try:
-        private = load_private_paths(root, router)
-    except (OSError, UnicodeError, ValueError) as error:
-        out(f"ERROR: 비공개 목록/장부 확인 실패 ({type(error).__name__})")
-        return 2
+def in_vault(p, root):
+    """p is a real file of the vault itself: not a link, and its real path is the same path under the real root."""
+    want = os.path.join(os.path.realpath(root), os.path.relpath(p, root))
+    return not is_link(p) and os.path.normcase(os.path.realpath(p)) == os.path.normcase(want)
 
-    def is_private(p):
-        rel = nfc(relp(p, root)).replace(os.sep, "/")
-        return any(rel == n or rel.startswith(n + "/") for n in private)
 
-    # Index documents only: top-level .md (field indexes, sub-indexes, MOCs) and INDEX.md files.
-    # Notes linked from an index are source material: never read or rewritten.
+def index_docs(root, rpath, is_private):
+    """Index documents reachable from the router: top-level .md (field indexes, sub-indexes, MOCs) and INDEX.md.
+    Notes linked from an index are source material: never read or rewritten. Returns (docs, parent, unreadable)."""
     guides, queue, parent, unreadable = [], [rpath], {}, []
     while queue:
         cur = queue.pop(0)
@@ -103,13 +107,64 @@ def run(root, normalize=False, out=print):
             unreadable.append(relp(cur, root)); continue
         for _, href in links(text):
             h, p = resolve(os.path.dirname(cur), href)
+            # a linked .md (symlink/junction, possibly into a source) is never an index document
             if (p and p.endswith(".md") and os.path.basename(p) not in SKIP_NAMES and p != rpath and p not in guides
-                    and os.path.commonpath([p, root]) == root
-                    and (os.path.dirname(p) == root or (os.path.basename(p) == "INDEX.md"
-                         and os.path.realpath(p).startswith(os.path.realpath(root) + os.sep)))
+                    and os.path.commonpath([p, root]) == root and in_vault(p, root)
+                    and (os.path.dirname(p) == root or os.path.basename(p) == "INDEX.md")
                     and not SECRET_RE.search(os.path.basename(p)) and not is_private(p)):
                 guides.append(p); queue.append(p); parent[p] = cur
-    docs = [rpath] + [g for g in guides if relp(g, root) not in unreadable]
+    return [rpath] + [g for g in guides if relp(g, root) not in unreadable], parent, unreadable
+
+
+def move_index(root, policy):
+    """NFC basename -> vault paths, built once for all broken links. Uses the saved inventory when present."""
+    paths = set()
+    try:
+        inv = load_json(root, INVENTORY)
+    except ValueError:
+        inv = None
+    tops, _ = policy.tops()
+    if inv:
+        basis = "저장된 파일 목록 (목록 저장 뒤 옮긴 파일은 inventory.py --write 후 다시 확인)"
+        for p in inv["files"]:
+            if policy.allowed_rel(p):
+                parts = p.split("/")
+                paths.update("/".join(parts[:i]) for i in range(2, len(parts) + 1))
+    else:
+        basis = "원본 1회 순회"
+        for top in tops:
+            w = policy.walk(top)
+            paths.update(w["dirs"]); paths.update(w["files"])
+    paths.update(tops)
+    for name in os.listdir(root):
+        if os.path.isfile(os.path.join(root, name)) and not policy.name_reason(name, False) and not policy.private_rel(name):
+            paths.add(name)
+    names = defaultdict(list)
+    for p in sorted(paths):
+        names[nfc(p.rsplit("/", 1)[-1])].append(p)
+    return names, basis
+
+
+def run(root, normalize=False, out=print):
+    root = os.path.abspath(root)
+    _LS.clear()
+    rpath = os.path.join(root, ROUTER)
+    if not os.path.exists(rpath):
+        out(f"ERROR: {ROUTER} 없음: {root}"); return 2
+    router = read(rpath)
+    if router is None:
+        out(f"ERROR: {ROUTER} 읽기 실패: {rpath}"); return 2
+    try:
+        policy = Policy(root, router)
+    except (OSError, UnicodeError, ValueError) as error:
+        out(f"ERROR: 비공개 목록/장부 확인 실패 ({type(error).__name__})")
+        return 2
+    private = policy.private
+
+    def is_private(p):   # logical path or an alias of a private folder
+        return policy.private_rel(relp(p, root)) or policy.private_real_path(os.path.realpath(p))
+
+    docs, parent, unreadable = index_docs(root, rpath, is_private)
     out(f"# 점검 대상\nroot: {root}\n문서: {', '.join(relp(d, root) for d in docs)}\n비공개(읽지 않음): {len(private)}개 (라우터와 지정 장부의 합집합)")
 
     linked = {}          # abs path -> [doc]
@@ -137,20 +192,23 @@ def run(root, normalize=False, out=print):
                 dups.append((rel, label, href))
             seen.add(key)
             linked.setdefault(key, []).append(rel)
-        if normalize and new_text != text:
+        if normalize and new_text != text and in_vault(d, root):   # never write through a link
             open(d, "w", encoding="utf-8").write(new_text)
 
     # Walk top folders and their direct children (depth 2). Never descend into private folders.
     index_mtime = min(os.path.getmtime(d) for d in docs)
-    new_top, unlinked_children, recent, secrets, empty = [], {}, [], [], []
+    new_top, unlinked_children, recent, secrets, empty, pii = [], {}, [], [], [], 0
     for top in sorted(os.listdir(root)):
         tp = os.path.join(root, top)
         if top in SKIP_NAMES or top.startswith(".") or os.path.normpath(tp) in map(os.path.normpath, docs):
             continue
         if is_private(tp):
             continue
-        if SECRET_RE.search(top):
+        reason = policy.name_reason(top, os.path.isdir(tp))
+        if reason == "secret_name":
             secrets.append(top); continue
+        if reason == "pii_name":   # the name itself may be personal data: counted, never printed
+            pii += 1; continue
         if os.path.normpath(tp) not in linked:
             new_top.append(top)
         if not os.path.isdir(tp):
@@ -162,47 +220,42 @@ def run(root, normalize=False, out=print):
             rel = f"{top}/{child}"
             if is_private(cp):
                 continue
-            if SECRET_RE.search(child):
+            reason = policy.name_reason(child, os.path.isdir(cp))
+            if reason == "secret_name":
                 secrets.append(rel); continue
-            if os.path.isdir(cp) and not any(not n.startswith(".") for _, _, fs in os.walk(cp) for n in fs):
+            if reason == "pii_name":
+                pii += 1; continue
+            # shallow: only this folder's own names (no subtree walk, so no descent into private subpaths)
+            if os.path.isdir(cp) and not any(not n.startswith(".") for n in os.listdir(cp)):
                 empty.append(rel)
             if os.path.normpath(cp) not in linked:
                 unlinked_children.setdefault(top, []).append(child)
             if os.path.getmtime(cp) > index_mtime:
                 recent.append(rel)
 
-    # A broken link whose basename now exists elsewhere is a move candidate.
-    moves = []
-    for rel, label, href in broken:
-        base = nfc(unquote(re.split(r"[#?]", href)[0].rstrip("/").split("/")[-1]))
-        hits, seen = [], {os.path.realpath(root)}
-        # followlinks: src-* symlinks hold the originals. Each linked dir is entered once (realpath), so link cycles end.
-        for dp, dn, fn in os.walk(root, followlinks=True):
-            dn[:] = [n for n in dn if not is_private(os.path.join(dp, n))]   # never descend into private paths
-            hits += [relp(os.path.join(dp, n), root) for n in dn + fn
-                     if nfc(n) == base and not is_private(os.path.join(dp, n))]
-            keep = []
-            for n in dn:
-                q = os.path.join(dp, n)
-                if is_link(q):
-                    rp = os.path.realpath(q)
-                    if rp in seen:
-                        continue
-                    seen.add(rp)
-                keep.append(n)
-            dn[:] = keep
-        moves.append((rel, href, hits))
+    # A broken link whose basename now exists elsewhere is a move candidate. One lookup table for all links
+    # (shared exclusions; links inside a source are not followed) instead of a tree walk per broken link.
+    moves, basis = [], "깨진 링크 없음"
+    if broken:
+        names, basis = move_index(root, policy)
+        for rel, label, href in broken:
+            base = nfc(unquote(re.split(r"[#?]", href)[0].rstrip("/").split("/")[-1]))
+            moves.append((rel, href, [h for h in names.get(base, []) if not is_private(os.path.join(root, h))]))
 
     def section(title, rows):
         out(f"\n## {title} ({len(rows)})")
         for r in rows:
             out("- " + (r if isinstance(r, str) else " | ".join(map(str, r))))
 
-    too_long, bad_names = [], []
+    too_long, bad_names, heavy, total_chars = [], [], [], 0
     for d in docs:
-        n = len((read(d) or "").splitlines())
+        doc_lines = (read(d) or "").splitlines()
+        n, chars, longest = len(doc_lines), sum(map(len, doc_lines)), max(map(len, doc_lines), default=0)
+        total_chars += chars
         if n > MAX_LINES and d != rpath:
             too_long.append((relp(d, root), f"{n}줄"))
+        if d != rpath and (chars > MAX_CHARS or longest > LONG_LINE):
+            heavy.append((relp(d, root), f"{n}줄", f"{chars}자", f"최장 줄 {longest}자"))
         name = os.path.splitext(os.path.basename(d))[0]
         if "--" in name:
             expected = nfc(name.rsplit("--", 1)[0] + ".md")
@@ -226,12 +279,13 @@ def run(root, normalize=False, out=print):
         targets = {os.path.normpath(resolve(os.path.dirname(d), h)[1] or "") for _, h in links(text)}
         for tok in re.findall(r"`([^`\n]+)`", text):
             cand = tok.strip().rstrip("/")
-            if not cand or any(nfc(cand) == n or nfc(cand).startswith(n + "/") for n in private) or any(c in cand for c in "*<>|"):
+            if not cand or policy.private_rel(cand) or any(c in cand for c in "*<>|"):
                 continue
             _, p = resolve(os.path.dirname(d), cand.replace(" ", "%20").replace(":", "%3A"))
             if p and os.path.normpath(p) not in targets and os.path.normpath(p) != os.path.normpath(d):
                 code_only.append((relp(d, root), tok))
     section(f"{MAX_LINES}줄을 넘는 색인 (하위 색인으로 분할 필요) — 문서 | 줄 수", too_long)
+    section(f"읽기 분량이 큰 색인 ({MAX_CHARS}자 초과 또는 {LONG_LINE}자 넘는 줄, 줄 수와 별도) — 문서 | 줄 | 자 | 최장 줄", heavy)
     section("8000자를 넘는 라우터 (핵심 안내와 별도 장부 분리 권장)",
             [(ROUTER, f"{len(router)}자")] if len(router) > 8000 else [])
     section("연결되지 않은 하위 색인 (재사용 대상: 상위 색인에 다시 연결)", orphans_sub)
@@ -240,9 +294,11 @@ def run(root, normalize=False, out=print):
     section("하위 색인 이름 규칙 위반 — 문서 | 이유", bad_names)
     section("새 최상위 항목 (라우터·안내에 링크 없음)", new_top)
     section("깨진 링크 (삭제 또는 이동) — 문서 | 링크 | 같은 이름 후보", [(r, h, ", ".join(c) or "후보 없음") for r, h, c in moves])
+    out(f"이동 후보 기준: {basis}")
     section(f"색인 문서보다 최근에 바뀐 하위 항목 (기준 {time.strftime('%Y-%m-%d %H:%M', time.localtime(index_mtime))})", recent)
     section("빈 폴더", empty)
     section("비밀정보로 보이는 이름 (읽지 않음, 색인 금지)", secrets)
+    out(f"이름에 개인정보 후보가 있는 항목 (경로 미표시, 색인 금지): {pii}개")
     section("비공개 경로를 가리키는 링크 (제거 필요)", private_links)
     section("같은 문서 안 중복 링크 — 문서 | 자료명 | 링크", dups)
     section("읽지 못한 색인 문서 (보류)", unreadable)
@@ -252,8 +308,8 @@ def run(root, normalize=False, out=print):
         out(f"- {top}: {len(kids)}개")
     total = sum(len(v) for v in linked.values())
     out(f"\n## 요약\n유효 링크 {total}, 깨진 링크 {len(broken)}, 새 최상위 {len(new_top)}, 최근 변경 {len(recent)}, 중복 {len(dups)}, 비공개 링크 {len(private_links)}")
-    out("점검 범위: 최상위와 그 바로 아래 항목의 이름·메타데이터. 더 깊은 하위 항목과 파일 내용은 점검하지 않음.")
-    out(f"색인 문서 {len(docs) - 1}개 (하위 색인 포함), {MAX_LINES}줄 초과 {len(too_long)}개, 연결 안 된 문서 {len(orphans_sub) + len(orphans_doc)}개, 코드 표기 경로 {len(code_only)}개")
+    out("점검 범위: 링크 정합성과 최상위·바로 아래 항목의 이름·메타데이터. 더 깊은 파일 변경은 inventory.py로 본다. 링크 오류 0은 내용 검토·질문 검증 완료가 아니다.")
+    out(f"색인 문서 {len(docs) - 1}개 (하위 색인 포함, 총 {total_chars}자), {MAX_LINES}줄 초과 {len(too_long)}개, 읽기 분량 큼 {len(heavy)}개, 연결 안 된 문서 {len(orphans_sub) + len(orphans_doc)}개, 코드 표기 경로 {len(code_only)}개")
     return 1 if broken or private_links or unreadable else 0
 
 
@@ -391,6 +447,22 @@ def selftest():
             f.write("[x](moc-x.md)\n")
         lines.clear(); rc = run(t, out=lines.append)
         assert rc == 1 and "읽지 못한 색인 문서 (보류) (1)\n- moc-x.md" in "\n".join(lines), "\n".join(lines)
+    with tempfile.TemporaryDirectory() as t:
+        # reading volume is reported apart from line count; a saved inventory replaces the source walk
+        os.makedirs(os.path.join(t, "work", "a", "b", "c"))
+        open(os.path.join(t, "work", "a", "b", "c", "moved.md"), "w").close()
+        open(os.path.join(t, "work", "홍길동 010-1234-5678.pdf"), "w").close()   # PII-looking name: counted only
+        open(os.path.join(t, ROUTER), "w", encoding="utf-8").write("[w](w.md)\n")
+        open(os.path.join(t, "w.md"), "w", encoding="utf-8").write("x" * 600 + "\n[m](old/moved.md)\n")
+        lines = []; run(t, out=lines.append); rep = "\n".join(lines)
+        assert "w.md | 2줄 | 617자 | 최장 줄 600자" in rep, rep
+        assert "old/moved.md | work/a/b/c/moved.md" in rep and "기준: 원본 1회 순회" in rep, rep
+        assert "010-1234" not in rep and "개인정보 후보가 있는 항목 (경로 미표시, 색인 금지): 1개" in rep, rep
+        os.makedirs(os.path.join(t, ".secondbrain"))
+        open(os.path.join(t, INVENTORY), "w", encoding="utf-8").write(
+            '{"version": 1, "sources": {}, "files": {"work/z/moved.md": {"size": 0, "mtime_ns": 0}}}')
+        lines.clear(); run(t, out=lines.append); rep = "\n".join(lines)
+        assert "old/moved.md | work/z/moved.md" in rep and "기준: 저장된 파일 목록" in rep, rep
     with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as ext:
         # src-* symlink folder: contents detected, private subpath skipped, move candidates found, cycles end.
         os.makedirs(os.path.join(ext, "proj")); os.makedirs(os.path.join(ext, "개인")); os.makedirs(os.path.join(ext, "deep"))
@@ -417,10 +489,25 @@ def selftest():
         lines.clear(); run(t, normalize=True, out=lines.append)
         assert "src-x/proj/INDEX.md" not in "\n".join(lines).split("문서:")[1].split("\n")[0], lines
         assert open(os.path.join(ext, "proj", "INDEX.md"), encoding="utf-8").read() == "[x](../%E1%84%8B.md)\n"                   # exactly one candidate, private copy skipped
+        # a top-level .md that links into a source is source material: not read as a guide, never normalized
+        open(os.path.join(ext, "guide-src.md"), "w", encoding="utf-8").write("[a](src-x/proj/%61.txt)\n")   # would be normalized
+        os.symlink(os.path.join(ext, "guide-src.md"), os.path.join(t, "ext-guide.md"))
+        with open(os.path.join(t, ROUTER), "a", encoding="utf-8") as f:
+            f.write("[eg](ext-guide.md)\n")
+        lines.clear(); run(t, normalize=True, out=lines.append)
+        assert "ext-guide.md" not in "\n".join(lines).split("문서:")[1].split("\n")[0], lines
+        assert open(os.path.join(ext, "guide-src.md"), encoding="utf-8").read() == "[a](src-x/proj/%61.txt)\n"
+        # a second link to the private folder is still private (alias)
+        os.symlink(os.path.join(ext, "개인"), os.path.join(t, "src-alias"), target_is_directory=True)
+        with open(os.path.join(t, "g.md"), "a", encoding="utf-8") as f:
+            f.write("[a](src-alias/id.txt)\n")
+        lines.clear(); run(t, out=lines.append)
+        assert "g.md | src-alias/id.txt" in "\n".join(lines).split("비공개 경로를 가리키는 링크")[1], lines
     print("selftest ok")
 
 
 if __name__ == "__main__":
+    utf8_stdout()
     if "--selftest" in sys.argv:
         selftest(); sys.exit(0)
     args = [a for a in sys.argv[1:] if not a.startswith("--")]

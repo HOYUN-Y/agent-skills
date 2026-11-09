@@ -1,0 +1,4 @@
+interface:
+  display_name: "자기소개서 초안"
+  short_description: "개인 이력·경험·문체 자료를 근거로 문항별 자기소개서 초안을 작성"
+  default_prompt: "$self-intro-draft 지원 문항에 맞춰 내 경험과 표현을 살린 자기소개서 초안을 작성해줘."

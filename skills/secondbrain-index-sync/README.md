@@ -7,6 +7,7 @@ Claude Code와 Codex에서 함께 쓰는 세컨드 브레인 색인 스킬입니
 - **주제 MOC** `moc-<주제>.md`: 업무와 개인 자료를 주제로 묶습니다.
 - **프로젝트 안내** `project-<이름>.md`: 문서·코드·규칙표 정본과 상태·변경기록을 짧게 연결합니다.
 - **외부 자료** `src-<이름>`: Drive나 다른 폴더의 원본을 가리키는 심볼릭 링크입니다.
+- **파일 목록** `catalog.md`, `catalog--*.md`: `inventory.py --write`가 만드는 깊은 하위 파일 목록입니다. 존재·크기·수정일만 보여주며, 손으로 고치지 않습니다. 기계용 목록과 검토 기록은 `.secondbrain/inventory.json`, `.secondbrain/review-state.json`에 있습니다(본문은 저장하지 않음).
 
 ## 설치
 
@@ -34,7 +35,11 @@ powershell -ExecutionPolicy Bypass -File install.ps1 C:\second-brain   # Windows
 | 요청 | 동작 |
 |------|------|
 | "색인 갱신" | 바뀐 자료를 찾아 색인과 MOC에 반영합니다. 링크 점검도 함께 합니다. |
+| "파일 목록 갱신" | 깊은 하위 파일까지 목록·변경 후보·재검토 대상과 그 자료를 링크한 안내를 보고합니다. 기본은 읽기 전용이고, 확인 후 목록 파일을 씁니다. |
+| "바뀐 자료만 반영" | 재검토 대상만 발췌해 읽고 의미 색인을 보강한 뒤, 읽은 파일을 검토 기록에 남깁니다. |
 | "전체 재색인" | 문서 내용을 발췌해 색인 설명과 주제 묶음을 다시 만듭니다. |
+
+파일 목록 갱신과 내용 검토는 별개입니다. 목록에 올라도 검토한 것으로 세지 않으며, 검토 기록은 읽은 시점의 파일 상태가 지금과 같을 때만 남습니다.
 
 날짜별로만 쌓인 폴더를 주제별로 묶을 때는 볼트에 `.secondbrain/topics.json`을 둡니다. 형식은 `templates/topics.example.json`을 참고하세요.
 
@@ -42,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1 C:\second-brain   # Windows
 
 - Python 3.8 이상 (표준 라이브러리만 사용). macOS, Linux, Windows에서 동작합니다.
 - 전체 재색인의 문서 발췌:
-  - DOCX, ODT, PPTX, XLSX: 추가 설치 필요 없음
+  - DOCX(본문), ODT, PPTX(슬라이드), XLSX(공유 문자열만): 추가 설치 필요 없음
   - PDF: `pdftotext` (poppler. `brew install poppler`, `apt install poppler-utils`, Windows는 `scoop install poppler`)
   - DOC, RTF: macOS `textutil`만 지원
   - 도구가 없는 형식은 실패 목록에 들어갑니다.
@@ -53,12 +58,14 @@ powershell -ExecutionPolicy Bypass -File install.ps1 C:\second-brain   # Windows
 - 라우터의 "비공개" 줄에 적힌 경로와 명시적으로 지정한 `.secondbrain/private-paths.txt` 장부의 합집합 및 그 하위는 읽지 않습니다. 장부는 선택 기능이며 기존 볼트는 자동 전환하지 않습니다.
 - 장부는 라우터에 `- 비공개 장부: .secondbrain/private-paths.txt`로 지정하고(실제 줄에는 백틱 없음), UTF-8 상대경로를 한 줄씩 씁니다. 장부만 남거나 표식을 해석하지 못하는 경우, 지정 장부가 누락·읽기 실패·잘못된 경로이면 자료 탐색 전에 중단합니다. Codex도 검색 전에 장부를 확인해야 하며 Claude 차단 설정도 유지합니다.
 - `.env`, 키, 토큰처럼 보이는 파일 이름은 열지 않습니다. 처음 설정할 때 볼트에 `.claude/settings.json`을 만들어 Claude Code가 이런 파일을 읽거나 `src-` 원본을 고치는 것을 막습니다. Codex에는 적용되지 않습니다.
-- 주민번호나 비밀번호 형식이 보이는 문서는 발췌하지 않고 따로 표시합니다.
+- 주민번호나 비밀번호 형식이 보이는 문서는 발췌하지 않고 따로 표시합니다. 이름에 주민번호·전화번호·이메일 형식이 보이는 파일은 경로를 출력하지 않습니다. 정규식 검사이므로 사람 이름 같은 개인정보는 비공개 목록으로 막아야 합니다.
+- 같은 실제 폴더로 가는 다른 링크(별칭)도 비공개로 막고, 자료원 안의 링크는 따라가지 않습니다. 발췌·재검토 목록은 볼트와 원본 밖에만 씁니다.
 
 ## 테스트
 
 ```sh
 python3 -I scripts/check_index.py --selftest
+python3 -I scripts/inventory.py --selftest
 python3 -I scripts/manifest.py --selftest
 python3 -I scripts/doc_manifest.py --selftest
 python3 -I scripts/build_topics.py --selftest
