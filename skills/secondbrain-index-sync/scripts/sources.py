@@ -55,11 +55,12 @@ class Policy:
         self.vault = os.path.abspath(vault)
         self.private = load_private_paths(self.vault, router)   # raises: callers abort before any traversal
         # Real targets of private paths, so an alias (another link to the same folder) cannot bypass them.
-        here = {p for p in self.private if os.path.exists(os.path.join(self.vault, p))}   # a dangling link is not resolvable
-        # Private comparisons only are casefolded (case-insensitive file systems: src-a/private == src-a/Private).
-        # Conservative on case-sensitive systems; listed paths and source ids keep their exact spelling.
+        here = {p for p in self.private if os.path.exists(os.path.join(self.vault, p))}
+        # Infer case-variant leaf paths for online sources too (Linux may not resolve their spelling).
+        # Do not treat inference as a resolved path: an old offline identity must still be retained.
+        online = {p for p in self.private if os.path.isdir(os.path.join(self.vault, p.split("/")[0]))}
         self.private_cf = {p.casefold() for p in self.private}
-        self.private_real = sorted({fold(os.path.realpath(os.path.join(self.vault, p))) for p in here})
+        self.private_real = sorted({fold(os.path.realpath(os.path.join(self.vault, p))) for p in here | online})
         # A private path behind an offline link cannot be resolved now: use the identity saved by the last
         # inventory --write (a hash, not the path), so a still-online alias stays blocked.
         # Keys are hashes of the rule paths too: private names are not copied into the inventory.
@@ -72,7 +73,8 @@ class Policy:
         rule = {p: path_id(p) for p in self.private}
         self.unresolved = {saved[rule[p]] for p in self.private - here if rule[p] in saved}
         self.ids = {**{rule[p]: saved[rule[p]] for p in self.private - here if rule[p] in saved},
-                    **{rule[p]: path_id(fold(os.path.realpath(os.path.join(self.vault, p)))) for p in here}}
+                    **{rule[p]: path_id(fold(os.path.realpath(os.path.join(self.vault, p))))
+                       for p in here | online if p in here or rule[p] not in saved}}
 
     def fingerprint(self):
         blob = json.dumps([POLICY_VERSION, sorted(self.private), sorted(SKIP_DIRS)], ensure_ascii=False)
