@@ -1,6 +1,6 @@
 # Agent Skills
 
-Codex와 Claude Code에서 사용하는 개인 스킬 9개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
+Codex와 Claude Code에서 사용하는 개인 스킬 11개를 한곳에서 관리합니다. 기존 6개 저장소의 최신 파일을 가져왔으며 스킬 이름과 기능은 유지합니다.
 
 | 스킬 | 용도 |
 |---|---|
@@ -10,6 +10,8 @@ Codex와 Claude Code에서 사용하는 개인 스킬 9개를 한곳에서 관�
 | [changelog-update](skills/changelog-update/SKILL.md) | 변경 파일을 바탕으로 일별 작업 기록 갱신 |
 | [changelog-verify](skills/changelog-verify/SKILL.md) | 원본과 대조해 기록 누락 검증·보강 |
 | [ai-use-case-research](skills/ai-use-case-research/SKILL.md) | 브라우저로 AI 활용 사례 조사 |
+| [company-career-research](skills/company-career-research/SKILL.md) | 입사 지원을 위한 회사·뉴스·프로젝트·비전·철학·인재상 조사 |
+| [self-intro-draft](skills/self-intro-draft/SKILL.md) | 외부 개인 이력·경험·문체 자료를 근거로 자기소개서 초안 작성·수정 |
 | [secondbrain-index-sync](skills/secondbrain-index-sync/SKILL.md) | 세컨드브레인 색인·주제 연결 관리 |
 | [insight-design-theme](skills/insight-design-theme/SKILL.md) | Artificial Insight 디자인 테마로 인스타 카드·PDF·PPT 제작 |
 | [translating-report](skills/translating-report/SKILL.md) | 자연스러운 한국어 번역·원문 대조·내장 Artificial Insight Mosaic HTML/PDF 템플릿 |
