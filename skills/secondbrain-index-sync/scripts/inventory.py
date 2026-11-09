@@ -575,7 +575,8 @@ def selftest():
             f.write("[파일 목록](catalog.md)\n")
         lines = []; assert ci.run(t, out=lines.append) == 0, lines
         # deep change: candidate with the guide that links it; inventory not yet written
-        put(deep, "# API v2", 10**18 + 5)
+        # Whole-second deltas survive filesystem timestamp rounding (NTFS stores 100ns ticks).
+        put(deep, "# API v2", 10**18 + 10**9)
         rc, rep = report(t)
         assert "projects/app/docs/spec/v1/api.md" in section(rep, "변경 후보"), rep
         assert "- projects/app/docs/spec/v1/api.md | 변경 (목록 미반영) | work.md | work.md(projects/app/)" in rep, rep
@@ -601,7 +602,7 @@ def selftest():
         rc, rep = report(t)
         assert "api.md | 목록 반영 후 미검토" not in rep and "full 2" in rep, rep
         assert "projects/app/README.md | 변경 (목록 미반영) | work.md | work.md(projects/app/)" in rep, rep
-        put(deep, "# API v3", 10**18 + 9)
+        put(deep, "# API v3", 10**18 + 2 * 10**9)
         rc, rep = report(t)
         assert "api.md | 검토 후 변경 | work.md" in rep, rep
         # a manual catalog page or an edited generated page blocks --write entirely
