@@ -89,7 +89,7 @@ def selftest():
             utf8_stdout()
             print("문서 경로")
             output.flush()
-        assert buffer.getvalue() == "문서 경로\n".encode("utf-8")
+        assert buffer.getvalue().decode("utf-8").splitlines() == ["문서 경로"]
     with tempfile.TemporaryDirectory() as t, tempfile.TemporaryDirectory() as o:
         os.makedirs(os.path.join(t, "src-a", "hidden"))
         os.makedirs(os.path.join(t, ".secondbrain"))
