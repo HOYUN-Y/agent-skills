@@ -94,12 +94,13 @@ export const LANDSCAPE: Layout = {
 
 // 릴스 안전 영역: 위 220 · 아래 420 · 오른쪽 140(좋아요·댓글 버튼) — clawd 추격씬 영상(2026-11-04)에서 정한 값
 // 글자 크기: 휴대폰(폭 약 390pt)에서 영상은 약 0.36배로 보인다. 본문 34px ≈ 12pt, 보조 28px ≈ 10pt가 하한(2026-11-09 독립 검수).
-// 오른쪽·아래 안전선에서 20px 이상 띄운다(x 끝 920, y 끝 1480).
+// 좌우 여백은 오른쪽 안전 영역과 같은 140으로 맞춰 내용을 화면 가운데에 둔다(x 140~940, 폭 800). 왼쪽만 48로 좁히면 내용이 56px 왼쪽으로 치우쳐 보인다(2026-11-11 사용자 지적).
+// 창 테두리는 오른쪽 안전선(x 940)까지, 글자는 창 안쪽 여백만큼 더 안쪽. 아래는 안전선에서 20px 이상 띄운다(y 끝 1480).
 export const PORTRAIT: Layout = {
   kind: 'portrait',
   W: 1080,
   H: 1920,
-  safe: {top: 220, right: 140, bottom: 420, left: 48},
+  safe: {top: 220, right: 140, bottom: 420, left: 140},
   t: {
     title: 60,
     titleLine: 70,
@@ -119,18 +120,18 @@ export const PORTRAIT: Layout = {
     header: 28,
     footer: 26,
   },
-  header: {x: 48, y: 232, w: 872, h: 48},
+  header: {x: 140, y: 232, w: 800, h: 48},
   logoTile: 44,
-  title: {x: 48, y: 292, w: 872, h: 124},
-  metrics: {x: 48, y: 424, w: 872, h: 44},
+  title: {x: 140, y: 292, w: 800, h: 124},
+  metrics: {x: 140, y: 424, w: 800, h: 44},
   // 세로에서는 카드가 한 줄(2열 × 2행): 지금 하는 일은 단계 제목 태그와 로그 줄이 맡는다
-  actors: {x: 48, y: 480, w: 872, h: 116, cols: 2, gap: 12, cells: 8, cellW: 14, cellH: 12, compact: true},
+  actors: {x: 140, y: 480, w: 800, h: 116, cols: 2, gap: 12, cells: 8, cellW: 14, cellH: 12, compact: true},
   tree: null,
-  hero: {x: 48, y: 610, w: 872, h: 442},
-  file: {x: 48, y: 1066, w: 872, h: 358},
-  output: {x: 48, y: 1066, w: 872, h: 358},
+  hero: {x: 140, y: 610, w: 800, h: 442},
+  file: {x: 140, y: 1066, w: 800, h: 358},
+  output: {x: 140, y: 1066, w: 800, h: 358},
   swap: true,
-  log: {x: 48, y: 1434, w: 872, h: 46, lines: 1, panel: false},
+  log: {x: 140, y: 1434, w: 800, h: 46, lines: 1, panel: false},
   band: {y: 1600, h: 320, cell: 8, top: 190}, // 릴스 UI가 덮는 위·아래는 디더 띠로 채운다(읽을 글자 없음)
   footerY: null,
   phases: false,
@@ -139,7 +140,7 @@ export const PORTRAIT: Layout = {
 };
 
 // 주인공이 단계 파이프라인이면 세로에서 카드를 숨긴다: 같은 진행을 두 번 보이지 않고, 그 높이를 주인공에 준다
-export const PORTRAIT_PIPELINE: Layout = {...PORTRAIT, actors: null, hero: {x: 48, y: 482, w: 872, h: 570}};
+export const PORTRAIT_PIPELINE: Layout = {...PORTRAIT, actors: null, hero: {x: 140, y: 482, w: 800, h: 570}};
 
 export const layoutFor = (width: number, height: number): Layout => (height > width ? (heroKind === 'pipeline' ? PORTRAIT_PIPELINE : PORTRAIT) : LANDSCAPE);
 
