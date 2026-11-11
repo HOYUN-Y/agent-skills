@@ -156,9 +156,9 @@ export const docs: Doc[] = [
     ],
     scan: {start: T.diffOpen + 8, end: T.changed[2], to: 2},
     lines: [
-      {text: 'api/auth.ts     | 12 +++---', mark: {at: T.changed[0], label: 'api'}},
-      {text: 'core/billing.ts | 31 +++++--', mark: {at: T.changed[1], label: 'core'}},
-      {text: 'ui/Button.tsx   |  4 ++--', mark: {at: T.changed[2], label: 'ui'}},
+      {text: 'api/auth.ts     | 12 ++-', mark: {at: T.changed[0], label: 'api'}},
+      {text: 'core/billing.ts | 31 +++-', mark: {at: T.changed[1], label: 'core'}},
+      {text: 'ui/Button.tsx   |  4 +-', mark: {at: T.changed[2], label: 'ui'}},
       {text: '3 files · +34 −13', kind: 'note'},
     ],
   },
@@ -171,7 +171,7 @@ export const docs: Doc[] = [
       [T.fixType.end, 'saved'],
     ],
     lines: [
-      {text: 'export function prorate(plan, days) {', kind: 'code'},
+      {text: 'function prorate(plan, days) {', kind: 'code'},
       {text: '  if (days <= 0) return 0;', kind: 'code', added: T.fixType},
       {text: '  const rate = plan.price / 30;', kind: 'code'},
       {text: '  return round(rate * days, 2);', kind: 'code'},
@@ -232,15 +232,15 @@ export const outputs: Output[] = [
 ];
 
 export const logs: Log[] = [
-  {at: 14, tag: 'system', text: 'session start · release-check · demo'},
+  {at: 14, tag: 'system', text: 'session start · release-check'},
   {at: T.diffOpen, tag: 'scanner', text: 'git diff main...release/2.4 --stat'},
   {at: T.changed[0], tag: 'scanner', text: 'changed  api/auth.ts'},
   {at: T.changed[1], tag: 'scanner', text: 'changed  core/billing.ts'},
   {at: T.changed[2], tag: 'scanner', text: 'changed  ui/Button.tsx · 3 files'},
   {at: T.testType.end, tag: 'tester', text: 'run 213 specs (changed modules)'},
   {at: T.testFail, tag: 'tester', text: 'FAIL billing.test.ts › zero days'},
-  {at: T.fix.start + 6, tag: 'fixer', text: 'read failure · prorate(plan, 0) → NaN'},
-  {at: T.fixType.end, tag: 'fixer', text: 'patch core/billing.ts L2 · guard days'},
+  {at: T.fix.start + 6, tag: 'fixer', text: 'failure · prorate(plan, 0) → NaN'},
+  {at: T.fixType.end, tag: 'fixer', text: 'patch billing.ts L2 · guard days'},
   {at: T.testPass, tag: 'tester', text: 'rerun · 213 passed · 0 failed'},
   {at: T.notesType.start, tag: 'writer', text: 'append CHANGELOG.md · v2.4.0'},
   {at: T.tag, tag: 'writer', text: 'tag v2.4.0 → 3 changes'},
