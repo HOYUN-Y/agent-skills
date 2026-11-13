@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { build } from '../scripts/build-agents.mjs';
 
 const temporary = await mkdtemp(join(tmpdir(), 'reviewer test '));
@@ -65,7 +66,38 @@ try {
   ], { input: await readFile(join(missing, '.codex/agents/code-reviewer.toml')), encoding: 'utf8' }));
   assert.ok(special.developer_instructions.endsWith(unusual));
   assert.ok((await readFile(join(missing, '.claude/agents/code-reviewer.md'), 'utf8')).includes(unusual));
-  console.log('공통 지침 일치·TOML 파싱·중복 실행·검사 모드·충돌 보존·링크 차단·특수문자 전달: 통과');
+
+  // 별도 역할 설치가 기존 리뷰어를 바꾸지 않으며 모델 지정도 보존해야 합니다.
+  const cli = fileURLToPath(new URL('../scripts/build-agents.mjs', import.meta.url));
+  execFileSync(process.execPath, [cli, '--project', project, '--agent', 'advisor']);
+  const advisor = await build(project, true, 'advisor');
+  const advisorBefore = await Promise.all(advisor.paths.map(path => readFile(path, 'utf8')));
+  const advisorToml = JSON.parse(execFileSync('python3', ['-c',
+    'import json, sys, tomllib; print(json.dumps(tomllib.loads(sys.stdin.read())))',
+  ], { input: advisorBefore[1], encoding: 'utf8' }));
+  assert.equal(advisorToml.name, 'advisor');
+  assert.equal(advisorToml.model, 'gpt-6-astra');
+  assert.match(advisorBefore[0], /^model: fable$/m);
+  assert.match(advisorBefore[0], /^tools: Read, Grep, Glob$/m);
+  assert.equal(advisorToml.developer_instructions.trimEnd(), advisorBefore[0].split('\n---\n\n')[1].trimEnd());
+  assert.ok(advisorToml.developer_instructions.startsWith(`지침 버전: sha256:${advisor.hash}\n`));
+  await build(project, false, 'advisor');
+  execFileSync(process.execPath, [cli, '--project', project, '--check', '--agent', 'advisor']);
+  assert.deepEqual(await Promise.all(advisor.paths.map(path => readFile(path, 'utf8'))), advisorBefore);
+  assert.deepEqual(await Promise.all(paths.map(path => readFile(path, 'utf8'))), before);
+
+  const advisorConflict = join(temporary, 'advisor-conflict');
+  await mkdir(join(advisorConflict, '.codex/agents'), { recursive: true });
+  const existingAdvisor = join(advisorConflict, '.codex/agents/advisor.toml');
+  await writeFile(existingAdvisor, '기존 advisor');
+  await assert.rejects(build(advisorConflict, false, 'advisor'), /기존 파일을 보존/);
+  assert.equal(await readFile(existingAdvisor, 'utf8'), '기존 advisor');
+  await assert.rejects(readFile(join(advisorConflict, '.claude/agents/advisor.md')), { code: 'ENOENT' });
+  await assert.rejects(build(project, false, '../../outside'), /에이전트는/);
+  for (const options of [['--agent'], ['--agent', '../../outside'], ['--agent', 'advisor', '--agent', 'advisor'], ['--check', '--check'], ['--other']]) {
+    assert.throws(() => execFileSync(process.execPath, [cli, '--project', project, ...options], { stdio: 'pipe' }));
+  }
+  console.log('공통 지침 일치·TOML 파싱·중복 실행·검사 모드·충돌 보존·링크 차단·특수문자 전달·advisor 선택과 모델·리뷰어 공존: 통과');
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

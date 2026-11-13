@@ -22,6 +22,8 @@ node reviewer/scripts/build-agents.mjs --project "/path/to/project"
 node reviewer/scripts/build-agents.mjs --project "/path/to/project" --check
 ```
 
+`--agent advisor`를 붙이면 [자문 에이전트](../advisor/README.md)를 별도로 설치합니다. 생략하면 기존처럼 code-reviewer만 생성하며 리뷰어 모델 설정은 바뀌지 않습니다.
+
 생성 파일:
 
 ```text

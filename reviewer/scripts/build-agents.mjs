@@ -4,18 +4,18 @@ import { lstat, readFile, realpath, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const source = fileURLToPath(new URL('..', import.meta.url));
-
-export async function build(project, check = false) {
+export async function build(project, check = false, agent = 'code-reviewer') {
+  if (!['code-reviewer', 'advisor'].includes(agent)) throw new Error('에이전트는 code-reviewer 또는 advisor를 지정하세요.');
+  const source = fileURLToPath(new URL(agent === 'advisor' ? '../../advisor/' : '..', import.meta.url));
   const root = await realpath(project);
   if (!(await lstat(root)).isDirectory()) throw new Error('기존 프로젝트 디렉터리를 지정하세요.');
-  const spec = await readFile(join(source, 'reviewer-spec.md'), 'utf8');
+  const spec = await readFile(join(source, agent === 'advisor' ? 'advisor-spec.md' : 'reviewer-spec.md'), 'utf8');
   const hash = createHash('sha256').update(spec).digest('hex');
   const instructions = `지침 버전: sha256:${hash}\n\n${spec}`;
   const outputs = [];
   for (const [adapter, relative] of [
-    ['claude.md', '.claude/agents/code-reviewer.md'],
-    ['codex.toml', '.codex/agents/code-reviewer.toml'],
+    ['claude.md', `.claude/agents/${agent}.md`],
+    ['codex.toml', `.codex/agents/${agent}.toml`],
   ]) {
     const template = await readFile(join(source, 'adapters', adapter), 'utf8');
     if (template.split('{{INSTRUCTIONS}}').length !== 2) throw new Error(`지침 자리표시자를 확인하세요: ${adapter}`);
@@ -50,16 +50,19 @@ export async function build(project, check = false) {
 
 if (process.argv[1] && await realpath(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
-  if (args.length < 2 || args.length > 3 || args[0] !== '--project' || (args[2] && args[2] !== '--check')) {
-    console.error('사용법: node reviewer/scripts/build-agents.mjs --project <기존 프로젝트 경로> [--check]');
-    process.exitCode = 1;
-  } else {
-    try {
-      const result = await build(args[1], args[2] === '--check');
-      console.log(`sha256:${result.hash}\n${result.paths.join('\n')}`);
-    } catch (error) {
-      console.error(error.message);
-      process.exitCode = 1;
+  try {
+    if (args.length < 2 || args[0] !== '--project' || args[1].startsWith('--')) throw new Error('사용법: node reviewer/scripts/build-agents.mjs --project <기존 프로젝트 경로> [--agent code-reviewer|advisor] [--check]');
+    let check = false;
+    let agent;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--check' && !check) check = true;
+      else if (args[i] === '--agent' && agent === undefined && args[i + 1]) agent = args[++i];
+      else throw new Error(`알 수 없거나 중복된 옵션: ${args[i]}`);
     }
+    const result = await build(args[1], check, agent);
+    console.log(`sha256:${result.hash}\n${result.paths.join('\n')}`);
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
   }
 }
