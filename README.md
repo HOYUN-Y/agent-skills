@@ -61,9 +61,11 @@ fi
 
 - **terminal-motion-theme:** `insight-design-theme`가 같은 설치 폴더(또는 `~/.claude/skills`)에 있어야 합니다. 새 프로젝트는 `sh skills/terminal-motion-theme/scripts/new_project.sh <폴더>`로 만들며, 그 스킬의 글꼴(`fetch_fonts.py`로 받은 것)·`brand.json`을 복사합니다. 스크립트는 패키지를 설치하지 않고, 프로젝트의 `npm install`(remotion 4.0.540·react 19.3.1 고정)과 Chrome Headless Shell 준비는 사용자 승인 후 진행합니다. 렌더 브라우저 경로와 검증은 macOS(Apple Silicon) 기준입니다. 검사 스크립트는 ffmpeg/ffprobe가 필요합니다.
 
-## 공통 코드 리뷰어
+## 커스텀 에이전트
 
 [Code Reviewer](reviewer/README.md)는 공통 지침에서 Claude Code·Codex용 프로젝트 서브에이전트 정의를 생성합니다. 요청 시에만 변경사항·전체 저장소·특정 영역을 검토하도록 구성하며 결함과 개선 제안을 구분합니다. 스킬 설치와 별개인 도구입니다. Claude의 합성 예제 실행과 Codex의 Herdr 대화형 전용 호출·공통 지침 주입·결함 발견을 확인했습니다. 환경별 검증 범위와 한계는 리뷰어 문서를 참고하세요.
+
+[Advisor](advisor/README.md)는 같은 생성기를 사용해 계획·반복 오류의 원인 분석·완료 판단을 자문하는 별도 커스텀 에이전트입니다. 요청할 때만 호출하며 Codex는 Astra, Claude는 Fable을 지정합니다. 설치는 `node reviewer/scripts/build-agents.mjs --project "/path/to/project" --agent advisor`로 진행합니다.
 
 ## 검증
 
@@ -71,6 +73,8 @@ fi
 
 ```sh
 python3 tests/check_portability.py
+node reviewer/tests/build-agents.mjs
+python3 -I reviewer/tests/fixtures.py
 bash -n skills/changelog-update/scripts/changed-files.sh
 bash -n skills/changelog-update/scripts/cron-run.sh
 bash -n skills/changelog-verify/scripts/check-detail.sh
